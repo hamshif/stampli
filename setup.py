@@ -8,6 +8,7 @@ setup(
     install_requires=[
         "pandas",
         "numpy",
+        "pyarrow",
         "fastapi",
         "uvicorn",
         "pydantic",
