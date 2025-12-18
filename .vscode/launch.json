@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Stampli: Chat Server",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/stampli/stampli_chat.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
+            }
+        },
+        {
+            "name": "Stampli: Run QA Tests",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/test_assignment_qa.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
+            }
+        }
+    ]
+}

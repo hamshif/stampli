@@ -1,0 +1,182 @@
+Checking server health...
+Server is UP.
+
+==================================================
+TEST: Q1: Australia -> HongKong
+Q: What do visitors from Australia say about Disneyland in HongKong?
+==================================================
+[Streaming] Found 1636 matches of 42656 entries. Using top 5 (Semantic Sort).
+
+Stats: Report the Sentiment Distribution: "Positive (77.7%), Neutral (14.3%), Negative (8.0%)"
+
+- Review 1: A family found HK Disneyland reminiscent of LA's, appreciating its quiet atmosphere, especially in the morning. They highlighted the convenience of using the MTR and recommended buying dining vouchers. Unique rides such as Mystic Manor and the Iron Man Experience were thoroughly enjoyed.
+
+- Review 2: The reviewer and their daughter had a fantastic experience at HK Disneyland, finding the park impressive despite its smaller size. They loved the Disney train and highly recommended the parades and fireworks, giving Disneyland Hong Kong a five-star rating.
+
+- Review 3: The review highlighted disappointments such as high costs, lack of nearby affordable dining options, and maintenance closures. They were critical of Toy Story Land's lack of shade and overall found the park expensive and not worth a repeat visit.
+
+- Review 4: A visitor noted the surprising lack of crowds despite visiting on a Saturday. They enjoyed Mystic Manor but found the food options limited in terms of Western cuisine. The small size of the castle was a letdown, and frequent queue jumping diminished their experience, though they acknowledged it's part of local culture.
+
+- Review 5: An Australian family enjoyed a full day at the park, appreciating unique experiences like Marvel attractions and thrilling rides such as the Big Grizzly Mountain. They found the park accessible via the Disney train line and suitable for families with younger kids.
+
+Takeaways: Visitors from Australia generally have varied experiences at Hong Kong Disneyland, with positive highlights on unique attractions and convenience, but also noting issues like high costs, limited food options, and cultural differences such as queue jumping. Despite its smaller size, many find it worth a visit for distinct rides not found elsewhere.
+
+[Time]: 17.92s
+✅ Matched keywords: ['Australia', 'Hong Kong']
+STATUS: ✅ PASSED
+
+==================================================
+TEST: Q2: Spring (Season)
+Q: Is spring a good time to visit Disneyland in HongKong?
+==================================================
+[Streaming] "Found 2388 matches of 42656 entries. Using top 5 (Semantic Sort)."
+
+Stats: Report the Sentiment Distribution: "Positive (74.5%), Neutral (16.7%), Negative (8.8%)"
+
+- Review 1: A visit to HK Disneyland is more comfortable during the cooler months, such as December, as opposed to the hot and humid months like August, which can result in discomfort, such as colds.
+- Review 2: The atmosphere in HK Disneyland is superb, with enough activities to keep visitors engaged from morning until night, although checking for any renovation closures is recommended for better planning.
+- Review 3: Despite being the smallest, HK Disneyland offers a rich experience with attractions such as the Mystic Manor and parades reminiscent of those at Disney World in Orlando, making it a must-visit for Disney fans.
+- Review 4: The park offers a neat and tidy environment with few thrills but impressive attractions, albeit with costly and unsatisfactory food options, noting that park entry is reasonably priced compared to other Disney parks.
+- Review 5: Visiting HK Disneyland during quieter times can lead to shorter wait times for rides, although it's crucial to verify any ride closures beforehand to avoid disappointment.
+
+Takeaways: Visiting Hong Kong Disneyland during cooler months or quieter days enhances the experience due to fewer crowds and pleasant weather. Checking for ride closures and preparing for pricey, sometimes lacking food options can help in better planning. The small size of the park allows for a thorough exploration in a limited time, with several attractions appealing especially to Disney enthusiasts.
+
+[Time]: 10.84s
+✅ Matched keywords: ['weather', 'Hong Kong']
+STATUS: ✅ PASSED
+
+==================================================
+TEST: Q3: California Crowd (Enrichment)
+Q: Is Disneyland California usually crowded in June?
+==================================================
+[Streaming] Found 19 matches of 42656 entries. Using top 5 (Semantic Sort).
+Stats: Report the Sentiment Distribution: ""
+- A reviewer noted visiting in early June before California schools let out, suggesting it offers moderate crowd levels compared to later in June when schools might be on break.
+- Another visitor mentioned that their trip in March experienced moderate crowds, implying that June might be busier as it gets closer to summer holidays.
+- One review highlighted the difficulty in navigating Disneyland on Fridays due to overwhelming crowds, hinting that June, being closer to summer, might experience similar crowd issues.
+- A different reviewer anticipated moderate crowds in May but found them overwhelming, which may indicate higher crowd levels in June as the summer kicks in.
+- Finally, another review suggested using crowd calendars to better plan visits, indicating variability in crowd levels and suggesting that certain June days might be less crowded.
+
+Takeaways:
+The reviews indicate that Disneyland California can be quite crowded in June, particularly as schools begin summer breaks. Visitors are encouraged to plan visits with the help of crowd calendars and to consider strategies like purchasing a MaxPass to make the most of their time despite potential crowd levels. Mid-week visits and early June dates may offer more moderate crowd experiences.
+
+[Time]: 9.59s
+✅ Matched keywords: ['June', 'California', 'crowd']
+STATUS: ✅ PASSED
+
+==================================================
+TEST: Q4: Paris Staff (Enrichment)
+Q: Is the staff in Paris friendly?
+==================================================
+[Streaming] Found 2783 matches of 42656 entries. Using top 5 (Semantic Sort).
+
+Stats: Report the Sentiment Distribution: "Positive (86.3%), Neutral (8.6%), Negative (5.1%)"
+
+- The user visited Disneyland Paris in February with a positive experience, noting the staff as happy, friendly, and willing to help, adding to the enjoyment of their visit. They found the park clean and well-presented.
+- During their stay at Sequoia Lodge Hotel, the user appreciated the friendly hotel staff who were efficient during check-in. They found the Disney park staff very helpful and always with a smile.
+- In the user's comparison between Disneyland Paris and Europa Park, there was no direct mention of staff friendliness, but the tone suggests dissatisfaction overall.
+- This user's account of Disneyland Paris noted the staff as perky, happy, and pleased to speak English, contributing to their positive experience despite some minor issues like smoking and closed attractions.
+- A negative review where the experience was marred by large crowds and long lines, with no specific mention of staff friendliness, instead focusing on other logistic issues like high prices and wait times.
+
+Takeaways: The consistent theme across the reviews is the friendly and helpful nature of the Disneyland Paris staff, which positively impacts visitors' experiences. Despite varying opinions on other aspects like cleanliness, costs, and crowd sizes, the sentiment towards the staff remains largely positive, contributing to the overall high sentiment distribution. Areas for improvement include managing crowds during peak seasons and addressing logistical challenges.
+
+[Time]: 19.80s
+✅ Matched keywords: ['Paris', 'staff', 'friendly']
+STATUS: ✅ PASSED
+
+==================================================
+TEST: Q5: California Price (Sensitivity)
+Q: Is the food expensive in Disneyland California?
+==================================================
+[Streaming] Found 2510 matches of 42656 entries. Using top 5 (Semantic Sort).
+
+Stats: Report the Sentiment Distribution: ""
+
+- A user mentioned that Disneyland has become very expensive, making it unaffordable for average-income families and some kids may never experience it.
+- A seasoned pass holder noted that both entrance fees and food at Disneyland are pricey, questioning how large families manage the costs.
+- Despite loving Disneyland, one reviewer criticized the food as overpriced with poor quality, preferring not to eat at the park's restaurants.
+- Another guest acknowledged that food at Disneyland is expensive, although they found it to be good and appreciated the on-site dining options.
+- One visitor appreciated the ability to bring snacks from outside to manage food expenses, highlighting that food within the park is costly, and mentioned rising admission prices over the years.
+
+Takeaways:
+The prevailing sentiment across multiple reviews highlights that while Disneyland is frequently praised for its experiences, the cost associated with visits, particularly food, is a significant point of concern. Several patrons expressed that the food is overpriced, with some questioning its quality, and this concern is compounded by rising admission costs. This pricing issue seems to affect how families budget for their trips, with some opting to bring external snacks to mitigate expenses. This insight underscores the need for Disneyland to potentially reassess its pricing strategy, especially for food and entry fees, to maintain accessibility for average-income families.
+
+[Time]: 13.43s
+✅ Matched keywords: ['food', 'price', 'expensive']
+STATUS: ✅ PASSED
+
+==================================================
+TEST: Q6: Paris Crowd (Packed check)
+Q: Are the lines long in Disneyland Paris?
+==================================================
+[Streaming] Found 726 matches of 42656 entries. Using top 5 (Semantic Sort).
+
+Stats: Report the Sentiment Distribution: "Positive (72.7%), Neutral (16.1%), Negative (11.1%)"
+
+- Disneyland Paris is appreciated for its attractions like Sleeping Beauty's Castle and Space Mountain, but it suffers from crowd management issues as there seem to be no rules on park capacity, leading to long lines.
+
+- Visitors have noted that the tickets are expensive with long wait times for short rides, making some experiences mediocre.
+
+- The proximity of Disneyland Paris to the city center means an additional travel duration, but strategic planning can make the visit smoother. Purchasing tickets through hotels can offer discounts, and some areas outside the park offer activities without park entry fees.
+
+- While Disneyland delivers on entertainment, visitors should expect it to focus heavily on marketing and sales, with long queues and high prices being common. Staying at Disney hotels can alleviate some of the inconvenience due to proximity benefits.
+
+- Despite the availability of "magic hours" for hotel guests, many rides remain closed during these times, making the perk less valuable. High costs and long waits are frequently cited issues by adults, though children still manage to enjoy the experience.
+
+Takeaways: Disneyland Paris offers unique attractions but struggles with crowd control, long lines, and expensive pricing. While children tend to find delight in the experience, adults are more critical of the waiting times, pricing, and logistics. Effective planning and managing expectations can improve the visit, but there are consistent complaints about the commercial aspects of Park operations.
+
+[Time]: 10.85s
+✅ Matched keywords: ['Paris', 'lines', 'queues', 'wait', 'crowd']
+STATUS: ✅ PASSED
+
+==================================================
+TEST: Q7: HongKong Family (Sentiment)
+Q: Is Disneyland Hong Kong good for families?
+==================================================
+[Streaming] Found 166 matches of 42656 entries. Using top 5 (Semantic Sort).
+Stats: Report the Sentiment Distribution: "Positive (96.4%), Neutral (3.6%)"
+
+- The review suggests Hong Kong Disneyland is ideal for families with elderly and children under seven due to its smaller size, ease of navigation, and well-organized facilities, though it cautions visiting outside of summer due to weather conditions.
+- An Australian family found Hong Kong Disneyland enjoyable with plenty of attractions, highlighting unique experiences like Marvel attractions and recommending the dedicated Disney train line for easy access.
+- Reviewers noted a sense of nostalgia upon visiting Hong Kong Disneyland, appreciating its quieter ambiance and recommending a two-day visit to fully enjoy its unique attractions like Mystic Manor and themed rides in a laid-back manner.
+- The review states Hong Kong Disneyland offers a quick yet fulfilling experience, manageable in a single day with reasonably short wait times, and suggests visiting in winter for a more comfortable experience, highlighting the Disney-themed train ride as part of the adventure.
+- A family found their visit to Hong Kong Disneyland delightful, appreciating the local hospitality and high quality of attractions, food, and entertainment, though noting it felt less grand compared to Disney World in Orlando.
+
+Takeaways:
+The reviews overwhelmingly suggest that Hong Kong Disneyland is a favorable destination for families, with its smaller and well-organized park size allowing for easier navigation and a less hectic experience. Families appreciate the unique attractions and culturally immersive experiences, such as the themed Disney train ride. Though some visitors noted its smaller scale compared to parks like Disney World, they still find value in the quality of entertainment and hospitality. Traveling outside of peak summer months is recommended for better weather conditions.
+
+[Time]: 10.93s
+✅ Matched keywords: ['Hong Kong', 'family', 'children']
+STATUS: ✅ PASSED
+
+==================================================
+TEST: Q8: Follow-up (Why?)
+Q: Why?
+==================================================
+[Streaming] Found 463 matches of 42656 entries. Using top 5 (Semantic Sort).
+Stats: Report the Sentiment Distribution: "Positive (100.0%)"
+
+- One review highlights the friendly atmosphere, enjoyable food, and festive Halloween experiences, noting the ease of seeing all attractions in one day.
+- A repeat visitor expressed enthusiasm for Hong Kong Disneyland, mentioning the thrill of conquering previously avoided rides, particularly enjoying the Big Grizzly Mountain Ride.
+- A reviewer found Disneyland easy to access via special metro services, appreciated shorter weekday lines, and noted the availability of halal food options, despite avoiding some thrilling rides.
+- An older family group, including daughters-in-law, had a pleasurable visit with multiple rides on new and exciting attractions, specifically the Mountain Runaway Mine Car, emphasizing enjoyment across a wide age range.
+- The review mentions that Hong Kong Disneyland hosts unique events and themed attractions for different seasons, advising visitors to plan trips around specific events to avoid crowds and enhance the experience.
+
+Takeaways:
+Hong Kong Disneyland receives positive reviews for its accessibility, diverse attractions, and inclusive dining options. The park provides a lively yet manageable experience regardless of guests' ages, with recurring visitors finding new thrills and memorable festive events. Planning visits around specific off-peak times and events can lead to reduced crowds and a more personalized experience. Visitors enjoy the park's unique rides and hospitality, often returning to relive beloved moments or explore missed attractions.
+
+[Time]: 11.91s
+STATUS: ✅ PASSED
+
+==================================================
+TEST: Q9: Invalid Entity
+Q: Is the weather good in Disneyland Tel Aviv?
+==================================================
+[Streaming] I do not have data about Tel Aviv. I only have data for: Disneyland_California, Disneyland_HongKong, Disneyland_Paris.
+
+[Time]: 3.01s
+✅ Matched keywords: ['California', 'Paris']
+STATUS: ✅ PASSED
+
+
+Test Suite Completed: 9/9 Passed
