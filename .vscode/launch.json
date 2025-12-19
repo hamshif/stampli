@@ -2,26 +2,40 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Stampli: Chat Server",
-            "type": "python",
+            "name": "Python: Current File",
+            "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/stampli/stampli_chat.py",
+            "program": "${file}",
             "console": "integratedTerminal",
+            "justMyCode": true,
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src",
-                "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
+                "PYENV_VERSION": "stampli",
+                "PYTHONPATH": "${workspaceFolder}/src:${workspaceFolder}${env:PYTHONPATH:+:${env:PYTHONPATH}}"
             }
         },
         {
-            "name": "Stampli: Run QA Tests",
-            "type": "python",
+            "name": "Python: Stampli Chat (Uvicorn)",
+            "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/test_assignment_qa.py",
-            "console": "integratedTerminal",
+            "module": "uvicorn",
+            "args": [
+                "stampli.stampli_chat:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "8000",
+                "--reload",
+                "--log-level",
+                "debug"
+            ],
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src",
-                "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
-            }
+                "PYENV_VERSION": "stampli",
+                "PYTHONPATH": "${workspaceFolder}/src:${workspaceFolder}${env:PYTHONPATH:+:${env:PYTHONPATH}}"
+            },
+            "cwd": "${workspaceFolder}/src",
+            "jinja": true,
+            "justMyCode": true,
+            "console": "integratedTerminal"
         }
     ]
 }

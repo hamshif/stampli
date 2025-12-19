@@ -1,7 +1,16 @@
 {
-    "python.defaultInterpreterPath": "~/.pyenv/versions/stampli/bin/python",
+    "python.defaultInterpreterPath": "/home/gideon/.pyenv/versions/stampli/bin/python",
+    "terminal.integrated.env.linux": {
+        "PYENV_VERSION": "stampli",
+        "PYTHONPATH": "${workspaceFolder}/src:${workspaceFolder}${env:PYTHONPATH:+:${env:PYTHONPATH}}"
+    },
     "python.analysis.extraPaths": [
         "${workspaceFolder}/src"
     ],
-    "python.terminal.activateEnvironment": true
+    "python.envFile": "${workspaceFolder}/.env",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.ds_store": true,
+        "**/__pycache__": true
+    }
 }
