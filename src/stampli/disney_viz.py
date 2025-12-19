@@ -73,12 +73,13 @@ def save_plot(filename, save_dir):
         print(f"Saved: {full_path}")
 
 # --- Insight 1: Theme Heatmaps ---
-def analyze_insight_1(df, save_dir=None):
+def analyze_insight_1(df, save_dir=None, show=True):
     print("\n=== Insight 1: Theme x Sentiment Heatmaps ===")
     
     work_df = df.copy()
+    # Check if 'Season' exists
     if 'Season' not in work_df.columns:
-        print("CRITICAL: 'Season' column missing.")
+        print("Error: 'Season' column missing. Run enrichment first.")
         return
 
     work_df['extracted_themes'] = work_df.apply(get_themes, axis=1)
@@ -122,10 +123,11 @@ def analyze_insight_1(df, save_dir=None):
         
         plt.tight_layout()
         save_plot(f"insight1_{branch}.png", save_dir)
-        plt.show()
+        if show:
+            plt.show()
 
 # --- Insight 2: What Drives Low Ratings? ---
-def analyze_insight_2(df, save_dir=None):
+def analyze_insight_2(df, save_dir=None, show=True):
     print("\n=== Insight 2: What Drives Low Ratings? ===")
     
     # Filter Low vs High
@@ -148,10 +150,11 @@ def analyze_insight_2(df, save_dir=None):
     plt.xlabel("Number of Negative Reviews")
     
     save_plot("insight2_low_ratings.png", save_dir)
-    plt.show()
+    if show:
+        plt.show()
 
 # --- Insight 3: Seasonality Beyond Ratings ---
-def analyze_insight_3(df, save_dir=None):
+def analyze_insight_3(df, save_dir=None, show=True):
     print("\n=== Insight 3: Seasonality Beyond Ratings ===")
     
     # Group by Year-Month
@@ -191,10 +194,11 @@ def analyze_insight_3(df, save_dir=None):
     style_title(ax1, "All Parks", "Sentiment vs Complaint Rate Over Time")
     
     save_plot("insight3_seasonality.png", save_dir)
-    plt.show()
+    if show:
+        plt.show()
 
 # --- Insight 4: Country-Specific Expectations ---
-def analyze_insight_4(df, save_dir=None):
+def analyze_insight_4(df, save_dir=None, show=True):
     print("\n=== Insight 4: Country-Specific Expectations ===")
     
     # Top 10 Locations
@@ -214,10 +218,11 @@ def analyze_insight_4(df, save_dir=None):
     plt.xlabel("Avg Sentiment Score")
     
     save_plot("insight4_country_expectations.png", save_dir)
-    plt.show()
+    if show:
+        plt.show()
 
 # --- Insight 5: Staff Sentiment Deep Dive ---
-def analyze_insight_5(df, save_dir=None):
+def analyze_insight_5(df, save_dir=None, show=True):
     print("\n=== Insight 5: Staff Sentiment Deep Dive ===")
     
     # Boxplot of Sentiment Score by Staff Tag
@@ -234,10 +239,11 @@ def analyze_insight_5(df, save_dir=None):
     plt.ylabel("Overall Sentiment Score")
     
     save_plot("insight5_staff_impact.png", save_dir)
-    plt.show()
+    if show:
+        plt.show()
 
 # --- Insight 6: Crowding Signal Validation ---
-def analyze_insight_6(df, save_dir=None):
+def analyze_insight_6(df, save_dir=None, show=True):
     print("\n=== Insight 6: Crowding Signal Validation ===")
     
     # Group by Crowd Level
@@ -268,7 +274,8 @@ def analyze_insight_6(df, save_dir=None):
     style_title(ax1, "All Parks", "Crowd Levels vs Sentiment & Complaints")
     
     save_plot("insight6_crowding_validation.png", save_dir)
-    plt.show()
+    if show:
+        plt.show()
 
 # --- Insight 7: Evidence Quotes ---
 def get_evidence_quotes(df, filters, n=3):

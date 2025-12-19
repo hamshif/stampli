@@ -1,5 +1,7 @@
-
+import matplotlib
+matplotlib.use('Agg') # Prevent window popup during testing
 import pandas as pd
+
 import sys
 from pathlib import Path
 
@@ -34,22 +36,22 @@ def main():
     print(f"Saving plots to {save_dir}")
     
     # 1. Theme Heatmaps
-    analyze_insight_1(df, save_dir=str(save_dir))
+    analyze_insight_1(df, save_dir=str(save_dir), show=False)
     
     # 2. Low Ratings
-    analyze_insight_2(df, save_dir=str(save_dir))
+    analyze_insight_2(df, save_dir=str(save_dir), show=False)
     
     # 3. Seasonality
-    analyze_insight_3(df, save_dir=str(save_dir))
+    analyze_insight_3(df, save_dir=str(save_dir), show=False)
     
     # 4. Country Expectations
-    analyze_insight_4(df, save_dir=str(save_dir))
+    analyze_insight_4(df, save_dir=str(save_dir), show=False)
     
     # 5. Staff Impact
-    analyze_insight_5(df, save_dir=str(save_dir))
+    analyze_insight_5(df, save_dir=str(save_dir), show=False)
     
     # 6. Crowding Signal
-    analyze_insight_6(df, save_dir=str(save_dir))
+    analyze_insight_6(df, save_dir=str(save_dir), show=False)
     
     # 7. Evidence
     get_evidence_quotes(df, {'crowd_level': 'Packed', 'Branch': 'Disneyland_California'})
