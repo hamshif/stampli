@@ -16,19 +16,10 @@ function App() {
     scrollToBottom()
   }, [messages])
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!input.trim() || loading) return
-
-    const userMsg = { role: 'user', content: input }
-    setMessages(prev => [...prev, userMsg])
-    setInput('')
+  // Helper: Stream Response
+  const streamResponse = async (apiMessages) => {
     setLoading(true)
-
     try {
-      // Sanitize messages to only send role and content (exclude logs, etc.)
-      const apiMessages = [...messages, userMsg].map(({ role, content }) => ({ role, content }))
-
       const response = await fetch('/api/stampli', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,7 +29,7 @@ function App() {
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
 
-      // Placeholder for assistant message
+      // Add placeholder for assistant message
       setMessages(prev => [...prev, { role: 'assistant', content: '', logs: [] }])
 
       while (true) {
@@ -59,11 +50,11 @@ function App() {
               setMessages(prev => {
                 const newMsgs = [...prev]
                 const lastIndex = newMsgs.length - 1
-                const lastMsg = { ...newMsgs[lastIndex] } // Shallow copy to avoid mutation
+                const lastMsg = { ...newMsgs[lastIndex] }
 
                 if (event.type === 'log') {
                   if (!lastMsg.logs) lastMsg.logs = []
-                  lastMsg.logs = [...lastMsg.logs, event.data] // New array
+                  lastMsg.logs = [...lastMsg.logs, event.data]
                 } else if (event.type === 'delta') {
                   lastMsg.content += event.data.text
                 }
@@ -85,10 +76,39 @@ function App() {
     }
   }
 
+  // Effect: Auto-Greeting
+  const initialized = useRef(false)
+
+  useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+
+    const initGreeting = async () => {
+      // Trigger "Hi" invisibly to get the greeting
+      const triggerMsg = { role: 'user', content: 'Hi' }
+      await streamResponse([triggerMsg])
+    }
+    initGreeting()
+  }, [])
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!input.trim() || loading) return
+
+    const userMsg = { role: 'user', content: input }
+    setMessages(prev => [...prev, userMsg])
+    setInput('')
+
+    // Send full history + new message
+    const apiMessages = [...messages, userMsg].map(({ role, content }) => ({ role, content }))
+    await streamResponse(apiMessages)
+  }
+
   return (
     <div className="chat-container">
       <header>
-        <h1>🏰 Stampli Agentic Analyst</h1>
+        <img src="/logo.png" alt="Stampli Logo" className="app-logo" />
+        <h1>Stampli Agentic Analyst</h1>
       </header>
 
       <div className="messages-list">

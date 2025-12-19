@@ -28,6 +28,14 @@ header {
   border-bottom: 1px solid #eee;
   background: white;
   z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-logo {
+  height: 32px;
+  width: auto;
 }
 
 header h1 {

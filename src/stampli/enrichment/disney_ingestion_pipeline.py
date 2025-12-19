@@ -16,52 +16,61 @@ import enrich_data
 import enrich_by_keywords
 import derive_features
 
+from stampli.paths import REVIEWS_CSV, REVIEWS_PARQUET, get_enriched_path
+
 # --- CONFIGURATION ---
-# All pipeline settings centralized here
+VERSION = "v4"
 MODEL_NAME = "gpt-4o-mini"
 BATCH_SIZE = 50
 LIMIT_BATCHES = None # For debugging set to 1, None for full run
 # ---------------------
 
-from stampli.paths import REVIEWS_CSV, REVIEWS_PARQUET, get_enriched_path
-
 def main():
     print("============================================")
-    print("STAMPLI PIPELINE: STARTING")
+    print(f"STAMPLI PIPELINE: {VERSION}")
     print(f"Model: {MODEL_NAME} | Batch Size: {BATCH_SIZE} | Limit: {LIMIT_BATCHES}")
     print("============================================\n")
 
-    # Step 1: Ingestion
-    print(">>> STEP 1: Ingestion")
-    if not ingest_raw.run_ingestion(
-        csv_path=REVIEWS_CSV, 
-        output_parquet_path=REVIEWS_PARQUET
-    ):
-        print("Pipeline aborted at Step 1.")
-        return
+    # Define Intermediate Paths
+    # We assume data dir is where REVIEWS_PARQUET lives
+    DATA_DIR = REVIEWS_PARQUET.parent
+    
+    # Step 0: Raw Ingestion (Optional Check)
+    # Source: REVIEWS_CSV -> REVIEWS_PARQUET (Raw Source)
+    # We can assume reviews.parquet is stable raw, or re-ingest if needed. 
+    # Let's verify raw exists.
+    RAW_SOURCE = REVIEWS_PARQUET
+    if not RAW_SOURCE.exists():
+        print(">>> Step 0: Raw Ingestion")
+        ingest_raw.run_ingestion(REVIEWS_CSV, RAW_SOURCE)
+    else:
+        print(f">>> Step 0: Using existing Raw Source: {RAW_SOURCE}")
 
-    # Step 2: Keyword Backfill (Instant results for all rows)
-    print("\n>>> STEP 2: Keyword Backfill")
-    # This provides a safety net of tags for the entire 42k dataset immediately
+    # Step 1: Keyword Backfill -> Intermediate Stage 1
+    # Keyword enrichment is fast and cheap.
+    STAGE1_FILE = DATA_DIR / f"reviews_stage1_kw_{VERSION}.parquet"
+    print(f"\n>>> STEP 1: Keyword Backfill -> {STAGE1_FILE.name}")
     enrich_by_keywords.run_backfill(
-        input_file=REVIEWS_PARQUET,
-        output_file=get_enriched_path()
+        input_file=RAW_SOURCE,
+        output_file=STAGE1_FILE
     )
 
-    # Step 2.5: Feature Derivation (Season, Clean Cols)
-    print("\n>>> STEP 2.5: Feature Derivation")
+    # Step 2: Feature Derivation -> Intermediate Stage 2
+    # Seasonality, column ordering.
+    STAGE2_FILE = DATA_DIR / f"reviews_stage2_derived_{VERSION}.parquet"
+    print(f"\n>>> STEP 2: Feature Derivation -> {STAGE2_FILE.name}")
     derive_features.run_derivation(
-        input_file=get_enriched_path(),
-        output_file=get_enriched_path()
+        input_file=STAGE1_FILE,
+        output_file=STAGE2_FILE
     )
 
-    # Step 3: LLM Enrichment (Nuanced refinement)
-    print("\n>>> STEP 3: LLM Enrichment")
-    # This resumes from the file Keywords just created, 
-    # and fills in the gaps or refinements.
+    # Step 3: LLM Enrichment -> Final Enriched
+    # This is the heavy lifting.
+    STAGE3_FILE = DATA_DIR / f"reviews_enriched_{VERSION}.parquet"
+    print(f"\n>>> STEP 3: LLM Enrichment -> {STAGE3_FILE.name}")
     enrich_data.run_enrichment(
-        input_file=REVIEWS_PARQUET,
-        output_file=get_enriched_path(),
+        input_file=STAGE2_FILE, # Use the derived file as input base
+        output_file=STAGE3_FILE,
         model_name=MODEL_NAME,
         batch_size=BATCH_SIZE,
         limit_batches=LIMIT_BATCHES
@@ -69,7 +78,7 @@ def main():
 
     print("\n============================================")
     print("PIPELINE COMPLETED SUCCESSFULLY")
-    print(f"Final Data: {get_enriched_path()}")
+    print(f"Final Artifact: {STAGE3_FILE}")
     print("============================================")
 
 if __name__ == "__main__":

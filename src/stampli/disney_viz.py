@@ -509,3 +509,46 @@ def generate_cx_playbook(df, save_dir=None):
     })
     
     return display_df
+
+# --- Narrative Generation ---
+def get_playbook_narrative_from_df(df_playbook):
+    """
+    Generates a statistical narrative summary from the Playbook DataFrame.
+    Shared logic for PDF report and Chatbot.
+    """
+    if df_playbook is None or df_playbook.empty:
+        return "No critical issues found (Playbook is empty)."
+    
+    narrative_text = "Playbook Statistical Summary:\n\n"
+    
+    try:
+        # Top 3 High Severity Issues
+        if 'severity' in df_playbook.columns:
+            top_severity = df_playbook.sort_values(by='severity', ascending=True).head(3)
+            narrative_text += "Top 3 High Severity Issues (Lowest Sentiment):\n"
+            for _, row in top_severity.iterrows():
+                narrative_text += f"- {row.get('park')}: {row.get('issue')} (Severity: {row.get('severity'):.1f}, Vol: {row.get('vol')})\n"
+            narrative_text += "\n"
+        
+        # Top 3 High Volume Issues
+        if 'vol' in df_playbook.columns:
+            top_volume = df_playbook.sort_values(by='vol', ascending=False).head(3)
+            narrative_text += "Top 3 High Volume Issues (Most Frequent):\n"
+            for _, row in top_volume.iterrows():
+                narrative_text += f"- {row.get('park')}: {row.get('issue')} (Vol: {row.get('vol')})\n"
+            narrative_text += "\n"
+        
+        # Worsening Trends
+        if 'trend' in df_playbook.columns and 'theme' in df_playbook.columns:
+            worsening = df_playbook[df_playbook['trend'].str.contains("Worse", na=False)]
+            if not worsening.empty:
+                narrative_text += f"Verified Worsening Trends ({len(worsening)} items):\n"
+                for _, row in worsening.head(3).iterrows(): # Limit to first 3
+                    narrative_text += f"- {row.get('park')} {row.get('theme')}: Sentiment deteriorated vs baseline.\n"
+            else:
+                narrative_text += "No significant worsening trends detected based on current thresholds.\n"
+                
+    except Exception as e:
+        narrative_text += f"Could not generate full stats: {e}"
+        
+    return narrative_text

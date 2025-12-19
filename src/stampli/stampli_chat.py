@@ -5,7 +5,7 @@ import logging
 import asyncio
 import pandas as pd
 import numpy as np
-from typing import List, Dict, AsyncGenerator, Optional
+from typing import List, Dict, AsyncGenerator, Optional, Literal
 from pathlib import Path
 from stampli.paths import get_enriched_path, CURRENT_VERSION
 from fastapi import FastAPI
@@ -17,19 +17,32 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 
+# Import Viz Logic directly
+from stampli.disney_viz import generate_cx_playbook, get_playbook_narrative_from_df
+
 # Setup Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("stampli_chat")
+
+# ANSI Colors for Debugging
+class Colors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
 
 # Load API Key
 if not os.environ.get("OPENAI_API_KEY"):
     logger.warning("OPENAI_API_KEY not found in environment. Please export it.")
 
 # --- Global Store (In-Memory Data) ---
-# --- Global Store (In-Memory Data) ---
 class GlobalStore:
     _instance = None
     df: pd.DataFrame = None
+    playbook_df: pd.DataFrame = None # Cached Playbook
     embedding_model = None
     valid_branches: List[str] = []
     active_path: Path = None
@@ -76,14 +89,20 @@ class GlobalStore:
             enriched_count = self.df['sentiment_score'].notna().sum()
             self.enrichment_coverage = (enriched_count / len(self.df)) * 100
             
+        # --- Pre-Calculate Playbook ---
+        logger.info("Generating CX Playbook in-memory...")
+        try:
+            self.playbook_df = generate_cx_playbook(self.df)
+            logger.info(f"Playbook generated with {len(self.playbook_df)} critical issues.")
+        except Exception as e:
+            logger.error(f"Failed to generate playbook: {e}")
+            
         logger.info(f"Loaded {len(self.df)} rows. Enrichment Coverage: {self.enrichment_coverage:.1f}%")
 
     def normalize_branch(self, user_input: str) -> Optional[str]:
         """
         Maps user input (e.g. 'Paris', 'California') to canonical Branch names 
         (e.g. 'Disneyland_Paris', 'Disneyland_California').
-        Returns None if no obvious map, OR if the mapped branch isn't in valid_branches? 
-        No, normalization should just map to canonical. Validation happens later.
         """
         if not user_input: return None
         
@@ -153,6 +172,11 @@ SEASON_MAP = {
 }
 
 class FilterSchema(BaseModel):
+    intent: Literal["search_reviews", "view_report", "capability_discovery"] = Field(
+        "search_reviews", 
+        description="Determine user intent: 'view_report' if asking for summaries, trends, stats, or 'the playbook'; 'capability_discovery' if asking 'what can you do', 'help', or 'hi'; 'search_reviews' for specific questions about food, queues, prices, etc."
+    )
+    
     topics: Optional[List[str]] = Field(None, description="List of topics to filter by (e.g. ['Food', 'Queue', 'Price'])")
     sentiment_label: Optional[str] = Field(None, description="Sentiment label (Positive, Negative, Neutral)")
     is_complaint: Optional[bool] = Field(None, description="True if looking for complaints/problems")
@@ -224,9 +248,6 @@ async def chat_stream_generator(messages: List[Dict[str, str]]) -> AsyncGenerato
     store = GlobalStore.get_instance()
     user_query = messages[-1]["content"]
     
-    store = GlobalStore.get_instance()
-    user_query = messages[-1]["content"]
-    
     # 1. ROUTER: Decide Filters (gpt-4o-mini)
     router_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
     parser = PydanticOutputParser(pydantic_object=FilterSchema)
@@ -236,7 +257,7 @@ async def chat_stream_generator(messages: List[Dict[str, str]]) -> AsyncGenerato
     history_str = "\n".join([f"{type(m).__name__}: {m.content}" for m in history_msgs])
     
     router_prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are a query router. Convert the user question into database filters.
+        ("system", """You are a query router. Convert the user question into intents and database filters.
         
         CONTEXT RULES:
         1. Use Chat History ONLY if the user is asking a follow-up question (e.g. "Why?", "What about Paris?").
@@ -244,6 +265,7 @@ async def chat_stream_generator(messages: List[Dict[str, str]]) -> AsyncGenerato
         3. Do NOT merge filters from unrelated turns.
         
         EXTRACTION RULES:
+        - `intent`: 'search_reviews' (default), 'view_report' (summary/trends), or 'capability_discovery' (help/hi).
         - `month`: If the user mentions a month (e.g., "June", "November") without a specific year, set `month` to the integer (1-12).
         - `crowd_level`: ONLY set this if the user specifically asks for a level (e.g., "when is it empty?"). If they ask "is it crowded?", keep it null and add 'Queues' to `topics` instead. This allows the semantic search to find both Moderate and Packed reviews rather than over-filtering.
         - `branch`: Always map to canonical names (Disneyland_California, Disneyland_Paris, Disneyland_HongKong, Disney_World_Florida).
@@ -263,6 +285,70 @@ async def chat_stream_generator(messages: List[Dict[str, str]]) -> AsyncGenerato
             "format_instructions": parser.get_format_instructions()
         })
         
+        # Color Log Intent
+        c_intent = f"{Colors.OKGREEN}{filters.intent.upper()}{Colors.ENDC}"
+        print(f"{Colors.HEADER}[ROUTER]{Colors.ENDC} Intent: {c_intent} | Reasoning: {filters.reasoning}")
+        
+        # --- INTENT BRANCHING ---
+        
+        # Branch 1: Capability Discovery
+        if filters.intent == "capability_discovery":
+            yield f"data: {json.dumps({'type': 'log', 'data': {'text': 'Identifying capabilities...', 'status': 'done'}})}\n\n"
+            
+            # Dynamic Personal Opening
+            capabilities = [
+                "Semantic Search: Filter 42k reviews by crowd level, staff sentiment, price, etc.",
+                "Playbook Reporting: Summarize top critical issues and worsening trends.",
+                "Forecasting: (Coming Soon) Anomaly detection and future predictions."
+            ]
+            
+            opening_sys_prompt = f"""You are Stampli, a friendly and enthusiastic Disney CX Analyst. 
+The user has just greeted you or asked for help.
+Welcome them warmly.
+Then, present your capabilities clearly using a **bulleted list**.
+
+Your Capabilities:
+{chr(10).join(['- ' + c for c in capabilities])}
+"""
+            
+            synth_llm = ChatOpenAI(model="gpt-4o", streaming=True)
+            prompt_msgs = [SystemMessage(content=opening_sys_prompt), HumanMessage(content=user_query)]
+            
+            async for chunk in synth_llm.astream(prompt_msgs):
+                if chunk.content:
+                     yield f"data: {json.dumps({'type': 'delta', 'data': {'text': chunk.content}})}\n\n"
+                     
+            yield "data: [DONE]\n\n"
+            return
+
+        # Branch 2: View Report
+        if filters.intent == "view_report":
+             yield f"data: {json.dumps({'type': 'log', 'data': {'text': 'Fetching Playbook Narrative...', 'status': 'done'}})}\n\n"
+             
+             narrative = get_playbook_narrative_from_df(store.playbook_df)
+             
+             # Synthesize answer using the narrative
+             synth_llm = ChatOpenAI(model="gpt-4o", streaming=True)
+             
+             sys_prompt = f"""You are a Disney CX Strategy Consultant.
+The user wants a high-level report or summary.
+Use the following Statistical Narrative generated from the latest data:
+
+{narrative}
+
+Present this information clearly. 
+If the user asked for specific trends (e.g. "what is getting worse?"), focus on that part.
+If general, provide the full summary.
+"""
+             prompt_msgs = [SystemMessage(content=sys_prompt), HumanMessage(content=user_query)]
+             
+             async for chunk in synth_llm.astream(prompt_msgs):
+                if chunk.content:
+                    yield f"data: {json.dumps({'type': 'delta', 'data': {'text': chunk.content}})}\n\n"
+             yield "data: [DONE]\n\n"
+             return
+
+        # Branch 3: Search Reviews (Default)
         # --- GUARDRAIL & NORMALIZATION ---
         
         # 1. Recovery: Check if 'unsupported_entity' is actually a known branch
@@ -302,15 +388,18 @@ async def chat_stream_generator(messages: List[Dict[str, str]]) -> AsyncGenerato
             yield "data: [DONE]\n\n"
             return
 
-        filters_json = filters.model_dump_json(exclude={'reasoning'})
+        filters_json = filters.model_dump_json(exclude={'reasoning', 'intent'})
         yield f"data: {json.dumps({'type': 'log', 'data': {'text': f'Filters: {filters_json}', 'status': 'done'}})}\n\n"
+        
     except Exception as e:
         logger.error(f"Router failed: {e}")
-        filters = FilterSchema(reasoning="Failed to parse") # Fallback to no filters
+        filters = FilterSchema(reasoning="Failed to parse", intent="search_reviews")
 
     # 2. ENGINE: Apply Filters (Pandas)
     relevant_reviews = []
-    if store.df is not None and not filters.model_dump(exclude_none=True).keys() <= {'reasoning'}:
+    # If we are here, intent is search_reviews (or fallback).
+    
+    if store.df is not None and not filters.model_dump(exclude_none=True).keys() <= {'reasoning', 'intent'}:
         df = store.df.copy()
         
         # Apply filters safely
@@ -392,23 +481,11 @@ async def chat_stream_generator(messages: List[Dict[str, str]]) -> AsyncGenerato
             df = df[mask]
             logger.info(f"After topics: {len(df)}")
         
-        if filters.topics:
-            def has_topic(row_topics):
-                if not isinstance(row_topics, (list, np.ndarray)): return False
-                return any(t.lower() in [x.lower() for x in row_topics] for t in filters.topics)
-            
-            mask = df['topics'].apply(has_topic)
-            df = df[mask]
-            logger.info(f"After topics: {len(df)}")
-        
         # --- SEMANTIC RETRIEVAL ---
         total_records = len(store.df)
         matches = len(df)
         
         # 1. Candidate Selection (Prioritize Recent if massive match, or just take head)
-        # Assuming Data is roughly sorted or we rely on 'Year_Month'
-        # Parsing Year_Month (YYYY-M) to sorts might be heavy. 
-        # For now, let's take a larger pool (e.g. 150) to re-rank.
         CANDIDATE_POOL_SIZE = 150
         candidates = df.head(CANDIDATE_POOL_SIZE).copy()
         
@@ -508,11 +585,6 @@ You are a disciplined Disney Analyst. Your output MUST follow the TEMPLATE below
 ### CHAT HISTORY:
 {{history_str}}
 """
-    
-    # We do NOT pass history as messages list anymore because we embed it in system prompt 
-    # to control context window and format more strictly? 
-    # Originally: history = get_chat_history(...) + [System] + [User]
-    # Let's keep the original structure but ENRICH the system prompt with metadata about the context.
     
     prompt_msgs = [SystemMessage(content=system_prompt)]
     # Add recent conversation turns for flow

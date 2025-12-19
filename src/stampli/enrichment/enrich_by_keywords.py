@@ -9,7 +9,7 @@ import re
 SCRIPT_DIR = Path(__file__).parent.resolve()
 SRC_DIR = SCRIPT_DIR.parents[1]
 sys.path.append(str(SRC_DIR))
-from stampli.paths import DATA_DIR, REVIEWS_ENRICHED_V4, get_enriched_path
+from stampli.paths import DATA_DIR, get_enriched_path
 
 # Default output if run alone
 DEFAULT_OUTPUT = get_enriched_path()
