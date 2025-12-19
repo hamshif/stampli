@@ -84,7 +84,6 @@ function App() {
     initialized.current = true
 
     const initGreeting = async () => {
-      // Trigger "Hi" invisibly to get the greeting
       const triggerMsg = { role: 'user', content: 'Hi' }
       await streamResponse([triggerMsg])
     }
@@ -99,7 +98,6 @@ function App() {
     setMessages(prev => [...prev, userMsg])
     setInput('')
 
-    // Send full history + new message
     const apiMessages = [...messages, userMsg].map(({ role, content }) => ({ role, content }))
     await streamResponse(apiMessages)
   }
@@ -107,8 +105,9 @@ function App() {
   return (
     <div className="chat-container">
       <header>
-        <img src="/logo.png" alt="Stampli Logo" className="app-logo" />
-        <h1>Stampli Agentic Analyst</h1>
+        {/* The Digital Seal Logo */}
+        <div className="logo-seal">印</div>
+        <h1>Stampli / Agentic Analyst</h1>
       </header>
 
       <div className="messages-list">
@@ -118,7 +117,7 @@ function App() {
               <div className="logs">
                 {msg.logs.map((log, lIdx) => (
                   <div key={lIdx} className={`log-item ${log.status}`}>
-                    ⚙️ {log.text}
+                    <span style={{opacity: 0.5}}>[SYS]</span> {log.text}
                   </div>
                 ))}
               </div>
@@ -139,10 +138,12 @@ function App() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question about Disney reviews..."
+          placeholder="Query the database..."
           disabled={loading}
         />
-        <button type="submit" disabled={loading}>Send</button>
+        <button type="submit" disabled={loading}>
+          {loading ? 'PROCESSING' : 'TRANSMIT'}
+        </button>
       </form>
     </div>
   )

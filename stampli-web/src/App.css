@@ -1,61 +1,80 @@
 #root {
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
   width: 100%;
   height: 100vh;
-}
-
-body {
-  margin: 0;
-  background-color: #f0f2f5;
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  max-width: 900px;
-  margin: 0 auto;
-  background: white;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 950px;
+  height: 85vh;
+  
+  /* GLASSMORPHISM CARD */
+  background: var(--glass-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
+/* Header styled as a HUD */
 header {
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
-  background: white;
-  z-index: 10;
+  padding: 15px 25px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
+  backdrop-filter: blur(5px);
 }
 
 .app-logo {
   height: 32px;
   width: auto;
+  filter: drop-shadow(0 0 8px var(--cyber-cyan)); /* Blue Glowing logo */
 }
 
 header h1 {
-  font-size: 1.2rem;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.9rem;
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
+/* Chat Area */
 .messages-list {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 30px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 }
 
 .message {
   display: flex;
   flex-direction: column;
   max-width: 80%;
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .message.user {
@@ -67,31 +86,48 @@ header h1 {
   align-self: flex-start;
 }
 
+/* BUBBLES */
 .bubble {
-  padding: 12px 16px;
+  padding: 14px 20px;
   border-radius: 12px;
-  line-height: 1.5;
+  line-height: 1.6;
   font-size: 0.95rem;
+  position: relative;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
+/* === USER BUBBLE: Black with Glowing Blue Text === */
 .user .bubble {
-  background: #007bff;
-  color: white;
+  background: rgba(0, 0, 0, 0.85); /* Deep Black */
+  color: var(--cyber-cyan);        /* Neon Blue Text */
+  border: 1px solid rgba(0, 243, 255, 0.3);
   border-bottom-right-radius: 2px;
+  
+  /* The "Hallowing" Glow Effect */
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.15); 
+  text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+  font-family: 'JetBrains Mono', monospace; /* Tech font matches the aesthetic */
 }
 
+/* Assistant Bubble */
 .assistant .bubble {
-  background: #f1f0f0;
-  color: #1a1a1a;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
   border-bottom-left-radius: 2px;
 }
 
+/* LOGS */
 .logs {
-  font-size: 0.75rem;
-  color: #666;
-  margin-bottom: 5px;
-  padding-left: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  margin-bottom: 8px;
+  padding: 10px;
   width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 2px solid var(--cyber-cyan);
+  border-radius: 4px;
+  color: var(--text-secondary);
 }
 
 .log-item {
@@ -99,82 +135,128 @@ header h1 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.log-item.error {
-  color: #dc3545;
-}
-
-.log-item.done {
-  color: #28a745;
-}
-
-.log-item.thinking {
-  color: #fd7e14;
-}
-
-.input-area {
-  padding: 20px;
-  background: white;
-  border-top: 1px solid #eee;
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 6px;
+}
+
+.log-item.thinking { color: var(--cyber-cyan); animation: pulse 1.5s infinite; }
+.log-item.done { color: #50fa7b; }
+.log-item.error { color: #ff5555; }
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* Input Area */
+.input-area {
+  padding: 20px 30px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  gap: 15px;
 }
 
 input {
   flex: 1;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 20px;
-  outline: none;
-  font-size: 1rem;
-}
-
-input:focus {
-  border-color: #007bff;
-}
-
-button {
-  padding: 0 25px;
-  background: #007bff;
+  padding: 15px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
   color: white;
-  border: none;
-  border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+/* Input Focus - Now Blue Glow */
+input:focus {
+  outline: none;
+  border-color: var(--cyber-cyan);
+  box-shadow: 0 0 15px var(--cyber-glow);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Button - Now Blue Glow */
+button {
+  padding: 0 30px;
+  background: rgba(0, 243, 255, 0.05);
+  color: var(--cyber-cyan);
+  border: 1px solid var(--cyber-cyan);
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: background 0.2s;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+  font-family: 'JetBrains Mono', monospace;
 }
 
-button:hover {
-  background: #0056b3;
+button:hover:not(:disabled) {
+  background: var(--cyber-cyan);
+  color: #000; /* Text turns black on hover for contrast */
+  box-shadow: 0 0 20px var(--cyber-glow);
 }
 
 button:disabled {
-  background: #ccc;
-  cursor: default;
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #555;
+  color: #555;
 }
 
 /* Markdown Styles */
-.bubble p {
-  margin: 0 0 10px 0;
-}
-
-.bubble p:last-child {
-  margin: 0;
-}
-
+.bubble p { margin: 0 0 10px 0; }
+.bubble p:last-child { margin: 0; }
+.bubble strong { color: var(--cyber-cyan); font-weight: 600; }
 .bubble pre {
-  background: #333;
-  color: white;
-  padding: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+}
+.bubble code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 5px;
   border-radius: 4px;
-  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+  color: var(--cyber-cyan);
 }
 
-.bubble img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-  margin-top: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+/* ... (keep your existing CSS) ... */
+
+/* === NEW: Digital Hanko (Japanese Seal) Logo === */
+.logo-seal {
+  width: 42px;
+  height: 42px;
+  border: 2px solid var(--cyber-cyan); /* The Blue Ring */
+  border-radius: 8px; /* Slight curve, like a modern app icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Typography for the Kanji */
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--cyber-cyan);
+  
+  /* The "Hallowing" Glow */
+  box-shadow: 
+    0 0 10px var(--cyber-glow),
+    inset 0 0 8px var(--cyber-glow);
+  text-shadow: 0 0 5px var(--cyber-cyan);
+  
+  /* Animation on load */
+  animation: sealFadeIn 1s ease-out forwards;
+}
+
+@keyframes sealFadeIn {
+  0% { opacity: 0; transform: scale(1.5); }
+  100% { opacity: 1; transform: scale(1); }
 }
