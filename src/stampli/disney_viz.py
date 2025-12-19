@@ -65,6 +65,18 @@ def style_title(ax, branch, subject):
     title_text = f"{branch_clean}\n{subject}"
     ax.set_title(title_text, fontsize=16, fontweight='bold', pad=20)
 
+def style_axis_labels(ax, xlabel=None, ylabel=None):
+    """
+    Applies bold, colored style to axis labels and removes underscores.
+    """
+    if xlabel:
+        clean_xlabel = xlabel.replace('_', ' ').title()
+        ax.set_xlabel(clean_xlabel, fontsize=12, fontweight='bold', color='#333333')
+    
+    if ylabel:
+        clean_ylabel = ylabel.replace('_', ' ').title()
+        ax.set_ylabel(clean_ylabel, fontsize=12, fontweight='bold', color='#333333')
+
 def save_plot(filename, save_dir):
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
@@ -73,8 +85,9 @@ def save_plot(filename, save_dir):
         print(f"Saved: {full_path}")
 
 # --- Insight 1: Theme Heatmaps ---
-def analyze_insight_1(df, save_dir=None, show=True):
-    print("\n=== Insight 1: Theme x Sentiment Heatmaps ===")
+def visualize_theme_sentiment(df, save_dir=None, show=True):
+    plt.suptitle("Theme Sentiment", fontsize=18, fontweight='bold', y=1.05)
+    # removed logging
     
     work_df = df.copy()
     # Check if 'Season' exists
@@ -117,9 +130,46 @@ def analyze_insight_1(df, save_dir=None, show=True):
         
         sns.heatmap(piv_sent, annot=True, fmt=".1f", cmap="RdYlGn", vmin=1, vmax=5, ax=axes[0])
         style_title(axes[0], branch, "Median Sentiment (1-5)")
+        style_axis_labels(axes[0], "Season", "Theme")
+        # Tick Styling: Color Map
+        SEASON_COLORS = {
+            'Winter': '#00008B', # Dark Blue
+            'Spring': '#32CD32', # Lime Green (Light Green requires dark background)
+            'Summer': '#FFD700', # Gold
+            'Autumn': '#FF4500'  # Orange Red
+        }
+        THEME_COLORS = {
+            'Cleanliness': '#009688', # Teal
+            'Family': '#9C27B0',      # Purple
+            'Food': '#795548',        # Brown
+            'Queue/Crowd': '#F44336', # Red
+            'Staff': '#2196F3',       # Blue
+            'Price': '#4CAF50',       # Green
+            'Rides': '#E91E63',       # Pink
+            'Weather': '#607D8B'      # Grey
+        }
         
+        axes[0].tick_params(axis='y', rotation=0) 
+        for lbl in axes[0].get_xticklabels():
+            lbl.set_color(SEASON_COLORS.get(lbl.get_text(), 'black'))
+            lbl.set_fontweight('bold')
+        for lbl in axes[0].get_yticklabels():
+            lbl.set_color(THEME_COLORS.get(lbl.get_text(), 'black'))
+            lbl.set_fontweight('bold')
+
         sns.heatmap(piv_vol, annot=True, fmt=".0f", cmap="Blues", ax=axes[1])
         style_title(axes[1], branch, "Volume (Count)")
+        style_axis_labels(axes[1], "Season", "Theme")
+        # Tick Styling (Apply same map)
+        axes[1].tick_params(axis='y', rotation=0) 
+        for lbl in axes[1].get_xticklabels():
+            lbl.set_color(SEASON_COLORS.get(lbl.get_text(), 'black'))
+            lbl.set_fontweight('bold')
+        # Hide Y labels on second plot to reduce clutter? Or keep colored? 
+        # User asked for bold style, keeping consistent.
+        for lbl in axes[1].get_yticklabels():
+            lbl.set_color(THEME_COLORS.get(lbl.get_text(), 'black'))
+            lbl.set_fontweight('bold')
         
         plt.tight_layout()
         save_plot(f"insight1_{branch}.png", save_dir)
@@ -127,8 +177,9 @@ def analyze_insight_1(df, save_dir=None, show=True):
             plt.show()
 
 # --- Insight 2: What Drives Low Ratings? ---
-def analyze_insight_2(df, save_dir=None, show=True):
-    print("\n=== Insight 2: What Drives Low Ratings? ===")
+def visualize_low_rating_drivers(df, save_dir=None, show=True):
+    plt.suptitle("Insight 2: What Drives Low Ratings?", fontsize=18, fontweight='bold', y=1.05)
+    # removed logging
     
     # Filter Low vs High
     low_ratings = df[df['Rating'] <= 2].copy()
@@ -147,15 +198,16 @@ def analyze_insight_2(df, save_dir=None, show=True):
     plt.figure(figsize=(10, 6))
     ax = sns.barplot(x=topic_counts.values, y=topic_counts.index, palette="Reds_r", hue=topic_counts.values, legend=False)
     style_title(ax, "All Parks", "Top Drivers of Low Ratings (1-2 Stars)")
-    plt.xlabel("Number of Negative Reviews")
+    style_axis_labels(ax, "Number of Negative Reviews", "Theme")
     
     save_plot("insight2_low_ratings.png", save_dir)
     if show:
         plt.show()
 
 # --- Insight 3: Seasonality Beyond Ratings ---
-def analyze_insight_3(df, save_dir=None, show=True):
-    print("\n=== Insight 3: Seasonality Beyond Ratings ===")
+def visualize_seasonality(df, save_dir=None, show=True):
+    plt.suptitle("Insight 3: Seasonality Beyond Ratings", fontsize=18, fontweight='bold', y=1.05)
+    # removed logging
     
     # Group by Year-Month
     # Need to sort chronologically. Year_Month is string "YYYY-M".
@@ -185,6 +237,7 @@ def analyze_insight_3(df, save_dir=None, show=True):
     sns.lineplot(data=monthly, x='dt', y='sentiment', ax=ax1, color='green', label='Avg Sentiment')
     ax1.set_ylabel('Sentiment Score (1-5)', color='green')
     ax1.tick_params(axis='y', labelcolor='green')
+    style_axis_labels(ax1, "Date", "Sentiment Score")
     
     ax2 = ax1.twinx()
     sns.lineplot(data=monthly, x='dt', y='complaint_rate', ax=ax2, color='red', linestyle='--', label='Complaint Rate')
@@ -198,8 +251,9 @@ def analyze_insight_3(df, save_dir=None, show=True):
         plt.show()
 
 # --- Insight 4: Country-Specific Expectations ---
-def analyze_insight_4(df, save_dir=None, show=True):
-    print("\n=== Insight 4: Country-Specific Expectations ===")
+def visualize_country_sentiment(df, save_dir=None, show=True):
+    plt.suptitle("Insight 4: Country-Specific Expectations", fontsize=18, fontweight='bold', y=1.05)
+    # removed logging
     
     # Top 10 Locations
     top_locs = df['Reviewer_Location'].value_counts().head(10).index
@@ -214,16 +268,18 @@ def analyze_insight_4(df, save_dir=None, show=True):
     
     plt.figure(figsize=(10, 6))
     ax = sns.barplot(x=agg.values, y=agg.index, palette="viridis", hue=agg.values, legend=False)
+    ax = sns.barplot(x=agg.values, y=agg.index, palette="viridis", hue=agg.values, legend=False)
     style_title(ax, "Global", "Average Sentiment by Visitor Country")
-    plt.xlabel("Avg Sentiment Score")
+    style_axis_labels(ax, "Avg Sentiment Score", "Country")
     
     save_plot("insight4_country_expectations.png", save_dir)
     if show:
         plt.show()
 
 # --- Insight 5: Staff Sentiment Deep Dive ---
-def analyze_insight_5(df, save_dir=None, show=True):
-    print("\n=== Insight 5: Staff Sentiment Deep Dive ===")
+def visualize_staff_impact(df, save_dir=None, show=True):
+    plt.suptitle("Insight 5: Staff Sentiment Deep Dive", fontsize=18, fontweight='bold', y=1.05)
+    # removed logging
     
     # Boxplot of Sentiment Score by Staff Tag
     # Filter rows where staff_sentiment is present
@@ -235,16 +291,18 @@ def analyze_insight_5(df, save_dir=None, show=True):
         
     plt.figure(figsize=(10, 6))
     ax = sns.boxplot(x='staff_sentiment', y='sentiment_score', data=subset, palette="Set2", hue='staff_sentiment', legend=False)
+    ax = sns.boxplot(x='staff_sentiment', y='sentiment_score', data=subset, palette="Set2", hue='staff_sentiment', legend=False)
     style_title(ax, "All Parks", "Impact of Staff Interactions on Overall Rating")
-    plt.ylabel("Overall Sentiment Score")
+    style_axis_labels(ax, "Staff Review Sentiment", "Overall Sentiment Score")
     
     save_plot("insight5_staff_impact.png", save_dir)
     if show:
         plt.show()
 
 # --- Insight 6: Crowding Signal Validation ---
-def analyze_insight_6(df, save_dir=None, show=True):
-    print("\n=== Insight 6: Crowding Signal Validation ===")
+def visualize_crowd_impact(df, save_dir=None, show=True):
+    plt.suptitle("Insight 6: Crowding Signal Validation", fontsize=18, fontweight='bold', y=1.05)
+    # removed logging
     
     # Group by Crowd Level
     # Order: Empty, Moderate, Crowded, Packed
@@ -266,6 +324,7 @@ def analyze_insight_6(df, save_dir=None, show=True):
     ax1.bar(agg.index, agg['avg_sentiment'], color='skyblue', label='Sentiment')
     ax1.set_ylabel('Avg Sentiment', color='blue')
     ax1.set_ylim(1, 5)
+    style_axis_labels(ax1, "Crowd Level", "Avg Sentiment")
     
     ax2 = ax1.twinx()
     ax2.plot(agg.index, agg['complaint_rate'], color='red', marker='o', label='Complaint %')

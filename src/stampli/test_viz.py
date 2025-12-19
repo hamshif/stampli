@@ -11,12 +11,12 @@ sys.path.append(str(SCRIPT_DIR.parents[0])) # src/stampli -> src
 
 from stampli.paths import get_enriched_path
 from stampli.disney_viz import (
-    analyze_insight_1,
-    analyze_insight_2,
-    analyze_insight_3,
-    analyze_insight_4,
-    analyze_insight_5,
-    analyze_insight_6,
+    visualize_theme_sentiment,
+    visualize_low_rating_drivers,
+    visualize_seasonality,
+    visualize_country_sentiment,
+    visualize_staff_impact,
+    visualize_crowd_impact,
     get_evidence_quotes,
     generate_cx_playbook
 )
@@ -36,22 +36,22 @@ def main():
     print(f"Saving plots to {save_dir}")
     
     # 1. Theme Heatmaps
-    analyze_insight_1(df, save_dir=str(save_dir), show=False)
+    visualize_theme_sentiment(df, save_dir=str(save_dir), show=False)
     
     # 2. Low Ratings
-    analyze_insight_2(df, save_dir=str(save_dir), show=False)
+    visualize_low_rating_drivers(df, save_dir=str(save_dir), show=False)
     
     # 3. Seasonality
-    analyze_insight_3(df, save_dir=str(save_dir), show=False)
+    visualize_seasonality(df, save_dir=str(save_dir), show=False)
     
     # 4. Country Expectations
-    analyze_insight_4(df, save_dir=str(save_dir), show=False)
+    visualize_country_sentiment(df, save_dir=str(save_dir), show=False)
     
     # 5. Staff Impact
-    analyze_insight_5(df, save_dir=str(save_dir), show=False)
+    visualize_staff_impact(df, save_dir=str(save_dir), show=False)
     
     # 6. Crowding Signal
-    analyze_insight_6(df, save_dir=str(save_dir), show=False)
+    visualize_crowd_impact(df, save_dir=str(save_dir), show=False)
     
     # 7. Evidence
     get_evidence_quotes(df, {'crowd_level': 'Packed', 'Branch': 'Disneyland_California'})
