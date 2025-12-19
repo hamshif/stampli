@@ -52,69 +52,52 @@ def get_themes(row):
          
     return list(themes)
 
-def analyze_insight_1(df, save_dir=None):
+def style_title(ax, branch, subject):
     """
-    Performs Theme x Sentiment analysis and displays heatmaps.
-    
-    Args:
-        df (pd.DataFrame): Input dataframe (must have 'topics', 'Branch', 'Season').
-        save_dir (str, optional): Path to save directory (e.g. 'data/plots'). 
-                                  If None, does not save.
+    Applies the requested 2-row, Bold, Large title format.
+    Replaces underscores in Branch name with spaces.
     """
-    print("--- Disney Insight 1 Analysis ---")
-    
-    # Work on a copy
-    work_df = df.copy()
-    
-    # Check Season
-    if 'Season' not in work_df.columns:
-        print("CRITICAL: 'Season' column missing. Cannot proceed.")
-        return
+    branch_clean = branch.replace('_', ' ')
+    title_text = f"{branch_clean}\n{subject}"
+    ax.set_title(title_text, fontsize=16, fontweight='bold', pad=20)
 
-    # Apply Theme Extraction
-    print("Extracting Themes...")
-    work_df['extracted_themes'] = work_df.apply(get_themes, axis=1)
-    
-    # Explode
-    df_exploded = work_df.explode('extracted_themes')
-    df_exploded = df_exploded[df_exploded['extracted_themes'].notna()]
-    print(f"Exploded rows: {len(df_exploded)}")
-    
-    # Aggregate
-    print("Aggregating Metrics...")
-    heatmap_data = (
-        df_exploded
-        .groupby(['Branch', 'Season', 'extracted_themes'])
-        .agg(
-            mean_sentiment=('sentiment_score', 'mean'),
-            median_sentiment=('sentiment_score', 'median'),
-            count=('review_uid', 'count'),
-            neg_count=('sentiment_label', lambda x: (x=='Negative').sum())
-        )
-        .reset_index()
-    )
-    
-    # Share Negative
-    heatmap_data['share_negative'] = heatmap_data['neg_count'] / heatmap_data['count']
-    
-    # Significance Gating < 30 -> NaN
-    plot_data = heatmap_data.copy()
-    mask_low = plot_data['count'] < 30
-    plot_data.loc[mask_low, ['mean_sentiment', 'median_sentiment', 'share_negative']] = np.nan
-    
-    SEASONS_ORDER = ['Winter', 'Spring', 'Summer', 'Autumn']
-    
-    branches = plot_data['Branch'].unique()
-    
-    # Create Save Dir if needed
+def save_plot(filename, save_dir):
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
-        print(f"Saving plots to: {save_dir}")
+        full_path = os.path.join(save_dir, filename)
+        plt.savefig(full_path, bbox_inches='tight')
+        print(f"Saved: {full_path}")
+
+# --- Insight 1: Theme Heatmaps ---
+def analyze_insight_1(df, save_dir=None):
+    print("\n=== Insight 1: Theme x Sentiment Heatmaps ===")
+    
+    work_df = df.copy()
+    if 'Season' not in work_df.columns:
+        print("CRITICAL: 'Season' column missing.")
+        return
+
+    work_df['extracted_themes'] = work_df.apply(get_themes, axis=1)
+    df_exploded = work_df.explode('extracted_themes')
+    df_exploded = df_exploded[df_exploded['extracted_themes'].notna()]
+    
+    # Aggregation
+    heatmap_data = (
+        df_exploded.groupby(['Branch', 'Season', 'extracted_themes'])
+        .agg(
+            median_sentiment=('sentiment_score', 'median'),
+            count=('review_uid', 'count')
+        ).reset_index()
+    )
+    
+    # Gating
+    heatmap_data.loc[heatmap_data['count'] < 30, ['median_sentiment']] = np.nan
+
+    SEASONS_ORDER = ['Winter', 'Spring', 'Summer', 'Autumn']
+    branches = heatmap_data['Branch'].unique()
 
     for branch in branches:
-        branch_data = plot_data[plot_data['Branch'] == branch]
-        
-        # Pivot
+        branch_data = heatmap_data[heatmap_data['Branch'] == branch]
         piv_sent = branch_data.pivot(index='extracted_themes', columns='Season', values='median_sentiment')
         piv_vol = branch_data.pivot(index='extracted_themes', columns='Season', values='count')
         
@@ -122,59 +105,185 @@ def analyze_insight_1(df, save_dir=None):
         for col in SEASONS_ORDER:
             if col not in piv_sent.columns: piv_sent[col] = np.nan
             if col not in piv_vol.columns: piv_vol[col] = np.nan
-            
         piv_sent = piv_sent[SEASONS_ORDER]
         piv_vol = piv_vol[SEASONS_ORDER]
         
-        # Plot
-        fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+        fig, axes = plt.subplots(1, 2, figsize=(16, 7))
         
         sns.heatmap(piv_sent, annot=True, fmt=".1f", cmap="RdYlGn", vmin=1, vmax=5, ax=axes[0])
-        axes[0].set_title(f"{branch} - Median Sentiment (1-5)")
+        style_title(axes[0], branch, "Median Sentiment (1-5)")
         
         sns.heatmap(piv_vol, annot=True, fmt=".0f", cmap="Blues", ax=axes[1])
-        axes[1].set_title(f"{branch} - Volume (Count)")
+        style_title(axes[1], branch, "Volume (Count)")
         
         plt.tight_layout()
+        save_plot(f"insight1_{branch}.png", save_dir)
+        plt.show()
+
+# --- Insight 2: What Drives Low Ratings? ---
+def analyze_insight_2(df, save_dir=None):
+    print("\n=== Insight 2: What Drives Low Ratings? ===")
+    
+    # Filter Low vs High
+    low_ratings = df[df['Rating'] <= 2].copy()
+    if low_ratings.empty:
+        print("No low ratings found.")
+        return
         
-        if save_dir:
-            filename = f"insight1_{branch}.png"
-            full_path = os.path.join(save_dir, filename)
-            plt.savefig(full_path)
-            print(f"Saved: {full_path}")
-            
-        plt.show() 
+    # Extract themes for low ratings
+    low_ratings['themes'] = low_ratings.apply(get_themes, axis=1)
+    exploded = low_ratings.explode('themes')
+    
+    # Count topics driving low ratings
+    topic_counts = exploded['themes'].value_counts().head(10)
+    
+    # Viz
+    plt.figure(figsize=(10, 6))
+    ax = sns.barplot(x=topic_counts.values, y=topic_counts.index, palette="Reds_r")
+    style_title(ax, "All Parks", "Top Drivers of Low Ratings (1-2 Stars)")
+    plt.xlabel("Number of Negative Reviews")
+    
+    save_plot("insight2_low_ratings.png", save_dir)
+    plt.show()
+
+# --- Insight 3: Seasonality Beyond Ratings ---
+def analyze_insight_3(df, save_dir=None):
+    print("\n=== Insight 3: Seasonality Beyond Ratings ===")
+    
+    # Group by Year-Month
+    # Need to sort chronologically. Year_Month is string "YYYY-M".
+    # Create valid date for sorting
+    df = df.copy()
+    # Handle YYYY-M format
+    try:
+        df['dt'] = pd.to_datetime(df['Year_Month'], format='%Y-%m', errors='coerce')
+    except:
+        # Fallback manual parse if needed
+        df['dt'] = pd.to_datetime(df['Year_Month'], errors='coerce')
         
-        # Insights Text
-        print(f"\n--- Insights for {branch} ---")
+    df = df.dropna(subset=['dt'])
+    
+    # Aggregate per month
+    monthly = df.groupby('dt').agg(
+        sentiment=('sentiment_score', 'mean'),
+        complaint_rate=('is_complaint', 'mean')
+    ).reset_index().sort_values('dt')
+    
+    if monthly.empty:
+        print("No valid timeline data.")
+        return
+
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+    
+    sns.lineplot(data=monthly, x='dt', y='sentiment', ax=ax1, color='green', label='Avg Sentiment')
+    ax1.set_ylabel('Sentiment Score (1-5)', color='green')
+    ax1.tick_params(axis='y', labelcolor='green')
+    
+    ax2 = ax1.twinx()
+    sns.lineplot(data=monthly, x='dt', y='complaint_rate', ax=ax2, color='red', linestyle='--', label='Complaint Rate')
+    ax2.set_ylabel('Complaint Rate (0-1)', color='red')
+    ax2.tick_params(axis='y', labelcolor='red')
+    
+    style_title(ax1, "All Parks", "Sentiment vs Complaint Rate Over Time")
+    
+    save_plot("insight3_seasonality.png", save_dir)
+    plt.show()
+
+# --- Insight 4: Country-Specific Expectations ---
+def analyze_insight_4(df, save_dir=None):
+    print("\n=== Insight 4: Country-Specific Expectations ===")
+    
+    # Top 10 Locations
+    top_locs = df['Reviewer_Location'].value_counts().head(10).index
+    subset = df[df['Reviewer_Location'].isin(top_locs)].copy()
+    
+    # Aggregate Price Sensitivity & Rating
+    # We need to turn price_sensitivity into a metric? 
+    # Or just use general sentiment? 
+    # Let's check sentiment by Country
+    
+    agg = subset.groupby('Reviewer_Location')['sentiment_score'].mean().sort_values()
+    
+    plt.figure(figsize=(10, 6))
+    ax = sns.barplot(x=agg.values, y=agg.index, palette="viridis")
+    style_title(ax, "Global", "Average Sentiment by Visitor Country")
+    plt.xlabel("Avg Sentiment Score")
+    
+    save_plot("insight4_country_expectations.png", save_dir)
+    plt.show()
+
+# --- Insight 5: Staff Sentiment Deep Dive ---
+def analyze_insight_5(df, save_dir=None):
+    print("\n=== Insight 5: Staff Sentiment Deep Dive ===")
+    
+    # Boxplot of Sentiment Score by Staff Tag
+    # Filter rows where staff_sentiment is present
+    subset = df[df['staff_sentiment'].notna() & (df['staff_sentiment'] != 'None')].copy()
+    
+    if subset.empty:
+        print("No staff sentiment data found.")
+        return
         
-        valid_cells = branch_data[branch_data['count'] >= 30]
+    plt.figure(figsize=(10, 6))
+    ax = sns.boxplot(x='staff_sentiment', y='sentiment_score', data=subset, palette="Set2")
+    style_title(ax, "All Parks", "Impact of Staff Interactions on Overall Rating")
+    plt.ylabel("Overall Sentiment Score")
+    
+    save_plot("insight5_staff_impact.png", save_dir)
+    plt.show()
+
+# --- Insight 6: Crowding Signal Validation ---
+def analyze_insight_6(df, save_dir=None):
+    print("\n=== Insight 6: Crowding Signal Validation ===")
+    
+    # Group by Crowd Level
+    # Order: Empty, Moderate, Crowded, Packed
+    ORDER = ['Empty', 'Moderate', 'Crowded', 'Packed']
+    
+    subset = df[df['crowd_level'].isin(ORDER)].copy()
+    
+    if subset.empty:
+        print("No crowd level data found.")
+        return
         
-        if not valid_cells.empty:
-            # 1. Worst Theme
-            worst_idx = valid_cells['median_sentiment'].idxmin()
-            worst = valid_cells.loc[worst_idx]
-            print(f"• CRITICAL ISSUE: '{worst.extracted_themes}' in {worst.Season} has lowest sentiment ({worst.median_sentiment:.1f}, N={worst['count']}).")
+    agg = subset.groupby('crowd_level').agg(
+        avg_sentiment=('sentiment_score', 'mean'),
+        complaint_rate=('is_complaint', 'mean')
+    ).reindex(ORDER)
+    
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+    
+    ax1.bar(agg.index, agg['avg_sentiment'], color='skyblue', label='Sentiment')
+    ax1.set_ylabel('Avg Sentiment', color='blue')
+    ax1.set_ylim(1, 5)
+    
+    ax2 = ax1.twinx()
+    ax2.plot(agg.index, agg['complaint_rate'], color='red', marker='o', label='Complaint %')
+    ax2.set_ylabel('Complaint Rate', color='red')
+    
+    style_title(ax1, "All Parks", "Crowd Levels vs Sentiment & Complaints")
+    
+    save_plot("insight6_crowding_validation.png", save_dir)
+    plt.show()
+
+# --- Insight 7: Evidence Quotes ---
+def get_evidence_quotes(df, filters, n=3):
+    """
+    Returns relevant quotes based on filters.
+    filters: dict e.g. {'crowd_level': 'Packed', 'Branch': 'Disneyland_Paris'}
+    """
+    subset = df.copy()
+    for col, val in filters.items():
+        if col in subset.columns:
+            subset = subset[subset[col] == val]
             
-            # Action
-            suggestions = {
-                "Queue/Crowd": "Prioritize queue management and capacity limits.",
-                "Price": "Review pricing strategy or add value bundles.",
-                "Food": "Refresh menu options and improve dining capacity.",
-                "Staff": "Invest in cast member training.",
-                "Weather": "Increase shaded areas and indoor activities.",
-                "Cleanliness": "Increase frequency of cleaning shifts.",
-                "Family": "Review family-friendly amenities and kid zones."
-            }
-            sugg = suggestions.get(worst.extracted_themes, "Investigate root causes.")
-            print(f"• ACTION: {sugg}")
-            
-            # 2. Largest Drop
-            theme_avg = valid_cells[valid_cells['extracted_themes'] == worst.extracted_themes]['median_sentiment'].mean()
-            diff = theme_avg - worst.median_sentiment
-            if diff > 0.3:
-                 print(f"• DROP: This is {diff:.1f} points lower than the {worst.extracted_themes} average ({theme_avg:.1f}) at this park.")
-        else:
-            print("• No themes met the significance threshold (30 reviews).")
-            
-        print("-" * 30)
+    # Sample
+    if len(subset) > n:
+        sample = subset.sample(n)
+    else:
+        sample = subset
+        
+    print(f"\n--- Evidence Quotes (Filters: {filters}) ---")
+    for i, row in enumerate(sample.itertuples()):
+        text = row.Review_Text[:300] + "..." if len(row.Review_Text) > 300 else row.Review_Text
+        print(f"{i+1}. \"{text}\" (Rating: {row.Rating})")

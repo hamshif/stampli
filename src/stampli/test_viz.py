@@ -8,23 +8,46 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.append(str(SCRIPT_DIR.parents[0])) # src/stampli -> src
 
 from stampli.paths import get_enriched_path
-from stampli.disney_viz import analyze_insight_1
+from stampli.disney_viz import (
+    analyze_insight_1,
+    analyze_insight_2,
+    analyze_insight_3,
+    analyze_insight_4,
+    analyze_insight_5,
+    analyze_insight_6,
+    get_evidence_quotes
+)
 
 def main():
-    print("Running Viz Test...")
+    print("Running Viz Test for All Insights...")
     path = get_enriched_path()
     df = pd.read_parquet(path)
     
-    # Run analysis with save option
-    # Need to go up from src/stampli into root/data/plots? 
-    # Current location: src/stampli/test_viz.py
-    # Root is src/stampli/../../
-    
-    # Just use absolute path for safety in test
     root_dir = SCRIPT_DIR.parents[2] # src/stampli -> src -> tmp/stampli
     save_dir = root_dir / "data" / "plots"
     
+    print(f"Saving plots to {save_dir}")
+    
+    # 1. Theme Heatmaps
     analyze_insight_1(df, save_dir=str(save_dir))
+    
+    # 2. Low Ratings
+    analyze_insight_2(df, save_dir=str(save_dir))
+    
+    # 3. Seasonality
+    analyze_insight_3(df, save_dir=str(save_dir))
+    
+    # 4. Country Expectations
+    analyze_insight_4(df, save_dir=str(save_dir))
+    
+    # 5. Staff Impact
+    analyze_insight_5(df, save_dir=str(save_dir))
+    
+    # 6. Crowding Signal
+    analyze_insight_6(df, save_dir=str(save_dir))
+    
+    # 7. Evidence
+    get_evidence_quotes(df, {'crowd_level': 'Packed', 'Branch': 'Disneyland_California'})
 
 if __name__ == "__main__":
     main()
