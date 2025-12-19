@@ -77,12 +77,32 @@ def style_axis_labels(ax, xlabel=None, ylabel=None):
         clean_ylabel = ylabel.replace('_', ' ').title()
         ax.set_ylabel(clean_ylabel, fontsize=12, fontweight='bold', color='#333333')
 
-def save_plot(filename, save_dir):
+
+print("Stampli Disney Viz Module Loaded")
+
+def save_plot(filename, save_dir=None):
+    if save_dir is None:
+        # Default to project_root/output/disney_exploration
+        try:
+            # src/stampli/disney_viz.py -> parents[2] is project root
+            project_root = Path(__file__).resolve().parents[2]
+            save_dir = project_root / "output" / "disney_exploration"
+            print(f"No save_dir provided. Defaulting to: {save_dir}")
+        except Exception:
+            # Fallback if __file__ is issues
+            save_dir = "output/disney_exploration"
+            print(f"No save_dir provided. Fallback default: {save_dir}")
+
     if save_dir:
-        os.makedirs(save_dir, exist_ok=True)
-        full_path = os.path.join(save_dir, filename)
-        plt.savefig(full_path, bbox_inches='tight')
-        # print(f"Saved: {full_path}") # Suppress logging
+        # Ensure string path if Path object passed
+        save_dir = str(save_dir)
+        try:
+            os.makedirs(save_dir, exist_ok=True)
+            full_path = os.path.join(save_dir, filename)
+            plt.savefig(full_path, bbox_inches='tight')
+            print(f"Saved plot to: {full_path}")
+        except Exception as e:
+            print(f"Failed to save {filename}: {e}")
 
 # --- Insight 1: Theme Heatmaps ---
 def visualize_theme_sentiment(df, save_dir=None, show=True):

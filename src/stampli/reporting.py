@@ -175,6 +175,6 @@ def generate_pdf_report(plot_dir, output_path):
                     except Exception as e:
                         print(f"Error embedding {fname}: {e}")
                 else:
-                    print(f"Warning: Plot not found {fpath}")
+                    print(f"Warning: Plot not found {os.path.abspath(fpath)}")
                     
     print("PDF Report generated successfully.")

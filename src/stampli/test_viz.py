@@ -36,8 +36,8 @@ def main():
     root_dir = SCRIPT_DIR.parents[2]
     # Setup Paths - dev test output
     root_dir = Path(".").resolve()
-    # Use output/test_viz so it's ignored
-    save_dir = root_dir / "output" / "test_viz" 
+    # Use output/disney_exploration as requested
+    save_dir = root_dir / "output" / "disney_exploration" 
     save_dir.mkdir(parents=True, exist_ok=True)
     
     print(f"Running Viz Test for All Insights...")
@@ -75,8 +75,8 @@ def main():
         
         # 9. Reports
         print("\nTesting Report Generation...")
-        generate_excel_playbook(playbook, str(root_dir / "output" / "test_playbook.xlsx"))
-        generate_pdf_report(str(save_dir), str(root_dir / "output" / "test_report.pdf"))
+        generate_excel_playbook(playbook, str(save_dir / "disney_cx_playbook.xlsx"))
+        generate_pdf_report(str(save_dir), str(save_dir / "stampli_insights_report.pdf"))
         
     except Exception as e:
         print(f"CX Playbook/Report Failed: {e}")
