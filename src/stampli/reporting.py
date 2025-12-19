@@ -107,11 +107,57 @@ def generate_excel_playbook(df, output_path):
 def generate_pdf_report(plot_dir, output_path):
     """
     Creates a PDF report combining text explanations and the saved PNG plots.
+    Includes an automated statistical narrative summary from the playbook.
     """
     print(f"Generating PDF Report: {output_path}")
     
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
+    # --- Auto Narrative Generation ---
+    narrative_text = "Playbook Statistical Summary:\n\n"
+    playbook_excel_path = os.path.join(plot_dir, "disney_cx_playbook.xlsx")
+    
+    if os.path.exists(playbook_excel_path):
+        try:
+            # Read back the playbook we just generated
+            df_playbook = pd.read_excel(playbook_excel_path)
+            
+            if not df_playbook.empty:
+                # Top 3 High Severity Issues
+                top_severity = df_playbook.sort_values(by='severity', ascending=True).head(3)
+                narrative_text += "Top 3 High Severity Issues (Lowest Sentiment):\n"
+                for _, row in top_severity.iterrows():
+                    narrative_text += f"- {row['park']}: {row['issue']} (Severity: {row['severity']:.1f}, Vol: {row['vol']})\n"
+                
+                narrative_text += "\n"
+                
+                # Top 3 High Volume Issues
+                top_volume = df_playbook.sort_values(by='vol', ascending=False).head(3)
+                narrative_text += "Top 3 High Volume Issues (Most Frequent):\n"
+                for _, row in top_volume.iterrows():
+                    narrative_text += f"- {row['park']}: {row['issue']} (Vol: {row['vol']})\n"
+                
+                narrative_text += "\n"
+                
+                # Worsening Trends
+                worsening = df_playbook[df_playbook['trend'].str.contains("Worse", na=False)]
+                if not worsening.empty:
+                    narrative_text += f"Verified Worsening Trends ({len(worsening)} items):\n"
+                    for _, row in worsening.head(3).iterrows(): # Limit to first 3
+                        narrative_text += f"- {row['park']} {row['theme']}: Sentiment deteriorated vs baseline.\n"
+                else:
+                    narrative_text += "No significant worsening trends detected based on current thresholds.\n"
+            else:
+                narrative_text += "No critical issues found (Playbook is empty).\n"
+                
+        except Exception as e:
+            narrative_text += f"Could not load playbook stats: {e}"
+            print(f"Error reading playbook for stats: {e}")
+    else:
+        narrative_text += "Playbook file not found for statistical summary."
+        print(f"Playbook Excel not found at: {playbook_excel_path}")
+
+    # --- PDF Creation ---
     with PdfPages(output_path) as pdf:
         # --- Title Page ---
         fig = plt.figure(figsize=(11, 8.5)) # Letter sizeish
@@ -120,6 +166,14 @@ def generate_pdf_report(plot_dir, output_path):
         plt.axis('off')
         pdf.savefig(fig)
         plt.close(fig)
+        
+        # --- Narrative Summary Page ---
+        fig_narrative = plt.figure(figsize=(11, 8.5))
+        fig_narrative.text(0.1, 0.85, "Executive Narrative Summary", fontsize=20, fontweight='bold')
+        fig_narrative.text(0.1, 0.4, narrative_text, fontsize=12, wrap=True, fontfamily='monospace') # monospace for list alignment
+        plt.axis('off')
+        pdf.savefig(fig_narrative)
+        plt.close(fig_narrative)
         
         # --- Insight Pages ---
         # Map insight keys to expected filenames prefixes

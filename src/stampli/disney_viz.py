@@ -406,17 +406,22 @@ def generate_cx_playbook(df, save_dir=None):
     
     # 3. Filter "Issues"
     # Rule: Volume >= 30.
-    subset = agg[agg['volume'] >= 30].copy()
+    # Add flag as requested
+    agg['low_data_flag'] = agg['volume'] < 30
+    
+    # For the critical issues list, we filter out low volume, but we keep the flag logic.
+    subset = agg[~agg['low_data_flag']].copy()
     
     # 4. Trend Calculation
     # Baseline: Average sentiment for that (Branch, Theme) across ALL seasons
     baseline = exploded.groupby(['Branch', 'extracted_themes'])['sentiment_score'].mean().reset_index()
-    baseline.rename(columns={'sentiment_score': 'baseline_score'}, inplace=True)
+    baseline.rename(columns={'sentiment_score': 'baseline_severity'}, inplace=True)
     
     subset = subset.merge(baseline, on=['Branch', 'extracted_themes'], how='left')
+    subset['delta_vs_baseline'] = subset['median_sentiment'] - subset['baseline_severity']
     
     def get_trend(row):
-        diff = row['median_sentiment'] - row['baseline_score']
+        diff = row['delta_vs_baseline']
         # If sentiment is LOWER than baseline, it's WORSE.
         if diff < -0.2: return "↑ Worse"
         elif diff > 0.2: return "↓ Better"
@@ -438,7 +443,7 @@ def generate_cx_playbook(df, save_dir=None):
     subset['recommended_action'] = subset['extracted_themes'].map(ACTION_MAP).fillna("Investigate specific root cause")
     
     # 6. Evidence Quote Selection
-    # Filter exploded for negative reviews
+    # Filter rows where staff_sentiment is present
     neg_reviews = exploded[exploded['sentiment_label'] == 'Negative'].copy()
     
     def get_quote(row):
@@ -452,7 +457,7 @@ def generate_cx_playbook(df, save_dir=None):
         
         if matches.empty:
             return "No specific negative quote found."
-            
+        
         # Pick concise one (40-300 chars)
         valid_quotes = matches[matches['Review_Text'].str.len().between(40, 300)]
         if not valid_quotes.empty:
@@ -460,7 +465,7 @@ def generate_cx_playbook(df, save_dir=None):
         
         # Fallback
         return matches.iloc[0]['Review_Text'][:150] + "..."
-
+    
     # Prioritize: Low Sentiment (Severity) ASC, High Volume DESC
     subset.sort_values(by=['median_sentiment', 'volume'], ascending=[True, False], inplace=True)
     
@@ -473,6 +478,7 @@ def generate_cx_playbook(df, save_dir=None):
     # 7. Formatting
     final_df['issue'] = final_df.apply(lambda r: f"High {r['extracted_themes']} friction", axis=1)
     final_df['evidence_metric'] = final_df['pct_negative'].astype(str) + "% negative"
+    final_df['theme'] = final_df['extracted_themes']
     
     # Park Name Cleanup: remove "Disneyland_"
     final_df['Branch'] = final_df['Branch'].str.replace('Disneyland_', '').str.replace('_', ' ')
@@ -480,18 +486,23 @@ def generate_cx_playbook(df, save_dir=None):
     output_cols = [
         'Branch',               # park (renamed later)
         'issue', 
+        'theme',                # New
         'median_sentiment',     # severity
+        'baseline_severity',    # New
+        'delta_vs_baseline',    # New
         'trend', 
-        'evidence_metric',      # Moved here
+        'evidence_metric',      
         'Season',               # season
         'recommended_action',
         'volume',               # vol
+        'low_data_flag',        # New
         'representative_quote'
     ]
     
     display_df = final_df[output_cols].rename(columns={
         'Branch': 'park',
-        'extracted_themes': 'theme',
+        'extracted_themes': 'theme_legacy', 
+        # 'theme' is already correct from output_cols
         'Season': 'season',
         'median_sentiment': 'severity',
         'volume': 'vol'
