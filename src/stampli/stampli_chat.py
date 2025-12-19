@@ -326,6 +326,8 @@ Then, present your capabilities clearly using a **bulleted list**.
 
 Your Capabilities:
 {chr(10).join(['- ' + c for c in capabilities])}
+
+Do not use emojis.
 """
             
             synth_llm = ChatOpenAI(model="gpt-4o", streaming=True)
@@ -381,6 +383,7 @@ If the user asked for specific trends (e.g. "what is getting worse?"), focus on 
 If general, provide the full summary.
 
 IMPORTANT: Do NOT generate image links/URLs yourself. The system will attach the relevant charts automatically.
+Do not use emojis.
 """
              prompt_msgs = [SystemMessage(content=sys_prompt), HumanMessage(content=user_query)]
              
@@ -618,7 +621,7 @@ IMPORTANT: Do NOT generate image links/URLs yourself. The system will attach the
     k = len(relevant_reviews)
     
     system_prompt = f"""### ROLE:
-You are a disciplined Disney Analyst. Your output MUST follow the TEMPLATE below exactly. 
+You are a disciplined Disney Analyst. Your output MUST follow the TEMPLATE below exactly. Do not use emojis. 
     
 ### CONTEXT METADATA:
 - CARDINALITY_MSG: "{cardinality_msg}"

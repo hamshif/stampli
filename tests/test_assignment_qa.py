@@ -139,11 +139,34 @@ def run_test(case, session=None):
              passed = False
              
         if passed:
-            print("STATUS: ✅ PASSED")
+            # Emoji Check
+            # Basic ranges for emojis (surrogates, symbols, etc.)
+            # This is a heuristic.
+            if any(char in full_response for char in "😀😃😄😁😆😅😂🤣😊😇🙂🙃😉😌😍🥰😘😗😙​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​"): 
+                # Ideally we use regex for range, but without extra deps, let's keep it simple or just rely on manual inspection if this is too hard.
+                # Actually, let's use a regex for high unicode characters if possible, or just checks specific ones.
+                # Re-thinking: The user wants to INSTRUCT the model. Verification is best effort.
+                pass
+
+            # Check for non-ascii characters that are likely emojis
+            # Emoji range usually starts high.
+            # Simple check: if there are characters outside basic multilingual plane (BMP) or specific symbol blocks.
+            for char in full_response:
+                # High surrogate pairs or specific symbol ranges often indicate emojis
+                if ord(char) > 0x1F600 and ord(char) < 0x1F650: # Emoticons
+                     print(f"❌ FAILED: Found emoji {char}")
+                     passed = False
+                     break
             
-            # Return updated session for context tests
-            messages.append({"role": "assistant", "content": full_response})
-            return True, messages
+            if passed:
+                print("STATUS: ✅ PASSED")
+            
+                # Return updated session for context tests
+                messages.append({"role": "assistant", "content": full_response})
+                return True, messages
+            else:
+                 print("STATUS: ❌ FAILED (Emoji Detected)")
+                 return False, messages
         else:
             print("STATUS: ❌ FAILED")
             return False, messages
