@@ -15,8 +15,13 @@ from stampli.disney_viz import (
     analyze_insight_4,
     analyze_insight_5,
     analyze_insight_6,
-    get_evidence_quotes
+    get_evidence_quotes,
+    generate_cx_playbook
 )
+
+
+
+
 
 def main():
     print("Running Viz Test for All Insights...")
@@ -48,6 +53,16 @@ def main():
     
     # 7. Evidence
     get_evidence_quotes(df, {'crowd_level': 'Packed', 'Branch': 'Disneyland_California'})
+
+    # 8. CX Playbook
+    print("\nTesting CX Playbook...")
+    try:
+        playbook = generate_cx_playbook(df, save_dir=str(save_dir))
+        print(f"CX Playbook Generated. Rows: {len(playbook)}")
+        print(playbook.head())
+    except Exception as e:
+        print(f"CX Playbook Failed: {e}")
+
 
 if __name__ == "__main__":
     main()

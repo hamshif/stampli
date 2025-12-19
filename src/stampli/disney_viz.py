@@ -5,6 +5,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from pathlib import Path
+import warnings
+
+# Suppress all warnings (Seaborn deprecations etc.)
+warnings.filterwarnings("ignore")
 
 # --- Helper Logic ---
 def get_themes(row):
@@ -139,7 +143,7 @@ def analyze_insight_2(df, save_dir=None):
     
     # Viz
     plt.figure(figsize=(10, 6))
-    ax = sns.barplot(x=topic_counts.values, y=topic_counts.index, palette="Reds_r")
+    ax = sns.barplot(x=topic_counts.values, y=topic_counts.index, palette="Reds_r", hue=topic_counts.values, legend=False)
     style_title(ax, "All Parks", "Top Drivers of Low Ratings (1-2 Stars)")
     plt.xlabel("Number of Negative Reviews")
     
@@ -205,7 +209,7 @@ def analyze_insight_4(df, save_dir=None):
     agg = subset.groupby('Reviewer_Location')['sentiment_score'].mean().sort_values()
     
     plt.figure(figsize=(10, 6))
-    ax = sns.barplot(x=agg.values, y=agg.index, palette="viridis")
+    ax = sns.barplot(x=agg.values, y=agg.index, palette="viridis", hue=agg.values, legend=False)
     style_title(ax, "Global", "Average Sentiment by Visitor Country")
     plt.xlabel("Avg Sentiment Score")
     
@@ -225,7 +229,7 @@ def analyze_insight_5(df, save_dir=None):
         return
         
     plt.figure(figsize=(10, 6))
-    ax = sns.boxplot(x='staff_sentiment', y='sentiment_score', data=subset, palette="Set2")
+    ax = sns.boxplot(x='staff_sentiment', y='sentiment_score', data=subset, palette="Set2", hue='staff_sentiment', legend=False)
     style_title(ax, "All Parks", "Impact of Staff Interactions on Overall Rating")
     plt.ylabel("Overall Sentiment Score")
     
@@ -287,3 +291,123 @@ def get_evidence_quotes(df, filters, n=3):
     for i, row in enumerate(sample.itertuples()):
         text = row.Review_Text[:300] + "..." if len(row.Review_Text) > 300 else row.Review_Text
         print(f"{i+1}. \"{text}\" (Rating: {row.Rating})")
+
+# --- CX Playbook ---
+def generate_cx_playbook(df, save_dir=None):
+    print("\n=== CX Playbook Generation ===")
+    
+    # 1. Setup & Explode
+    work_df = df.copy()
+    if 'Season' not in work_df.columns:
+        print("CRITICAL: 'Season' column missing.")
+        return pd.DataFrame()
+        
+    work_df['extracted_themes'] = work_df.apply(get_themes, axis=1)
+    # explode
+    exploded = work_df.explode('extracted_themes')
+    exploded = exploded[exploded['extracted_themes'].notna()]
+    
+    # 2. Aggregation: Group by Park, Season, Theme
+    # Metrics: Count (Volume), Median Sentiment (Severity), Pct Negative
+    agg = exploded.groupby(['Branch', 'Season', 'extracted_themes']).agg(
+        volume=('review_uid', 'count'),
+        median_sentiment=('sentiment_score', 'median'),
+        neg_count=('sentiment_label', lambda x: (x == 'Negative').sum())
+    ).reset_index()
+    
+    agg['pct_negative'] = (agg['neg_count'] / agg['volume'] * 100).round(1)
+    
+    # 3. Filter "Issues"
+    # Rule: Volume >= 30.
+    subset = agg[agg['volume'] >= 30].copy()
+    
+    # 4. Trend Calculation
+    # Baseline: Average sentiment for that (Branch, Theme) across ALL seasons
+    baseline = exploded.groupby(['Branch', 'extracted_themes'])['sentiment_score'].mean().reset_index()
+    baseline.rename(columns={'sentiment_score': 'baseline_score'}, inplace=True)
+    
+    subset = subset.merge(baseline, on=['Branch', 'extracted_themes'], how='left')
+    
+    def get_trend(row):
+        diff = row['median_sentiment'] - row['baseline_score']
+        # If sentiment is LOWER than baseline, it's WORSE.
+        if diff < -0.2: return "↑ Worse"
+        elif diff > 0.2: return "↓ Better"
+        else: return "≈ Same"
+        
+    subset['trend'] = subset.apply(get_trend, axis=1)
+    
+    # 5. Action Mapping
+    ACTION_MAP = {
+        'Queue/Crowd': 'Increase staffing, capacity smoothing, promote early-entry',
+        'Staff': 'Training on problem resolution, not politeness',
+        'Price': 'Improve value communication or bundle offerings',
+        'Food': 'Improve peak-hour availability / quality',
+        'Cleanliness': 'Increase cleaning frequency during peak',
+        'Rides': 'Proactive maintenance notification & queue management',
+        'Weather': 'Add more shaded/indoor rest areas',
+        'Family': 'Enhance kid-friendly queuing entertainment'
+    }
+    subset['recommended_action'] = subset['extracted_themes'].map(ACTION_MAP).fillna("Investigate specific root cause")
+    
+    # 6. Evidence Quote Selection
+    # Filter exploded for negative reviews
+    neg_reviews = exploded[exploded['sentiment_label'] == 'Negative'].copy()
+    
+    def get_quote(row):
+        # find matching reviews
+        mask = (
+            (neg_reviews['Branch'] == row['Branch']) & 
+            (neg_reviews['Season'] == row['Season']) & 
+            (neg_reviews['extracted_themes'] == row['extracted_themes'])
+        )
+        matches = neg_reviews[mask]
+        
+        if matches.empty:
+            return "No specific negative quote found."
+            
+        # Pick concise one (40-300 chars)
+        valid_quotes = matches[matches['Review_Text'].str.len().between(40, 300)]
+        if not valid_quotes.empty:
+            return valid_quotes.iloc[0]['Review_Text']
+        
+        # Fallback
+        return matches.iloc[0]['Review_Text'][:150] + "..."
+
+    # Prioritize: Low Sentiment (Severity) ASC, High Volume DESC
+    subset.sort_values(by=['median_sentiment', 'volume'], ascending=[True, False], inplace=True)
+    
+    # Take top 15 "Critical Issues"
+    final_df = subset.head(15).copy()
+    
+    # Get quotes for these 15
+    final_df['representative_quote'] = final_df.apply(get_quote, axis=1)
+    
+    # 7. Formatting
+    final_df['issue'] = final_df.apply(lambda r: f"High {r['extracted_themes']} friction", axis=1)
+    final_df['evidence_metric'] = final_df['pct_negative'].astype(str) + "% negative"
+    
+    # Park Name Cleanup: remove "Disneyland_"
+    final_df['Branch'] = final_df['Branch'].str.replace('Disneyland_', '').str.replace('_', ' ')
+
+    output_cols = [
+        'Branch',               # park (renamed later)
+        'issue', 
+        'median_sentiment',     # severity
+        'trend', 
+        'evidence_metric',      # Moved here
+        'Season',               # season
+        'recommended_action',
+        'volume',               # vol
+        'representative_quote'
+    ]
+    
+    display_df = final_df[output_cols].rename(columns={
+        'Branch': 'park',
+        'extracted_themes': 'theme',
+        'Season': 'season',
+        'median_sentiment': 'severity',
+        'volume': 'vol'
+    })
+    
+    return display_df

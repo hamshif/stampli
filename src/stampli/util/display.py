@@ -174,6 +174,7 @@ def _render_scrollable_html(
         padding: 6px 12px;
         border-bottom: 1px solid {resolved_theme["row_border"]};
         background: {resolved_theme["row_background"]};
+        text-align: left;
       }}
 
       #{container_id} .scrollable-dataframe-table tbody tr:nth-child(even) td {{
