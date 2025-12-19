@@ -61,3 +61,4 @@ conf/developer/
 node_modules/
 stampli-web/node_modules/
 
+data/plots/

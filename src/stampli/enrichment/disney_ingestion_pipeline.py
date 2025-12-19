@@ -14,6 +14,7 @@ if str(SRC_ROOT) not in sys.path:
 import ingest_raw
 import enrich_data
 import enrich_by_keywords
+import derive_features
 
 # --- CONFIGURATION ---
 # All pipeline settings centralized here
@@ -44,6 +45,13 @@ def main():
     # This provides a safety net of tags for the entire 42k dataset immediately
     enrich_by_keywords.run_backfill(
         input_file=REVIEWS_PARQUET,
+        output_file=get_enriched_path()
+    )
+
+    # Step 2.5: Feature Derivation (Season, Clean Cols)
+    print("\n>>> STEP 2.5: Feature Derivation")
+    derive_features.run_derivation(
+        input_file=get_enriched_path(),
         output_file=get_enriched_path()
     )
 
