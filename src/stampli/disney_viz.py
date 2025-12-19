@@ -552,3 +552,96 @@ def get_playbook_narrative_from_df(df_playbook):
         narrative_text += f"Could not generate full stats: {e}"
         
     return narrative_text
+
+# --- Plot Registry Generation ---
+def generate_all_plots(df, save_dir=None):
+    """
+    Runs all visualizations and returns a Registry Dictionary.
+    Registry Format: 
+    {
+        "filename": {
+            "title": "Display Title",
+            "type": "insight_type",
+            "branch": "Associated Branch (or 'Global')",
+            "path": "relative/path/to/file.png"
+        }
+    }
+    """
+    registry = {}
+    
+    # Ensure directory
+    if save_dir is None:
+        project_root = Path(__file__).resolve().parents[2]
+        save_dir = project_root / "output" / "disney_exploration"
+    
+    os.makedirs(save_dir, exist_ok=True)
+    save_dir_str = str(save_dir)
+    print(f"Generating all plots to: {save_dir_str}")
+
+    # Insight 1: Theme Sentiment (Per Branch)
+    if 'Season' in df.columns:
+        visualize_theme_sentiment(df, save_dir=save_dir_str, show=False)
+        # Re-construct filenames based on know logic (or modify viz to return them, but this is less intrusive)
+        branches = df['Branch'].unique()
+        for b in branches:
+            fname = f"insight1_{b}.png"
+            if (Path(save_dir) / fname).exists():
+                registry[fname] = {
+                    "title": f"Theme Sentiment: {b.replace('_', ' ')}",
+                    "type": "sent_heatmap",
+                    "branch": b,
+                    "path": f"/plots/{fname}"
+                }
+
+    # Insight 2: Low Ratings
+    visualize_low_rating_drivers(df, save_dir=save_dir_str, show=False)
+    if (Path(save_dir) / "insight2_low_ratings.png").exists():
+        registry["insight2_low_ratings.png"] = {
+            "title": "Top Drivers of Low Ratings",
+            "type": "drivers",
+            "branch": "Global",
+            "path": "/plots/insight2_low_ratings.png"
+        }
+
+    # Insight 3: Seasonality
+    visualize_seasonality(df, save_dir=save_dir_str, show=False)
+    if (Path(save_dir) / "insight3_seasonality.png").exists():
+        registry["insight3_seasonality.png"] = {
+            "title": "Seasonality & Complaint Trends",
+            "type": "seasonality",
+            "branch": "Global",
+            "path": "/plots/insight3_seasonality.png"
+        }
+
+    # Insight 4: Country
+    visualize_country_sentiment(df, save_dir=save_dir_str, show=False)
+    if (Path(save_dir) / "insight4_country_expectations.png").exists():
+        registry["insight4_country_expectations.png"] = {
+            "title": "Sentiment by Visitor Country",
+            "type": "country",
+            "branch": "Global",
+            "path": "/plots/insight4_country_expectations.png"
+        }
+
+    # Insight 5: Staff
+    visualize_staff_impact(df, save_dir=save_dir_str, show=False)
+    if (Path(save_dir) / "insight5_staff_impact.png").exists():
+        registry["insight5_staff_impact.png"] = {
+            "title": "Staff Impact on Rating",
+            "type": "staff",
+            "branch": "Global",
+            "path": "/plots/insight5_staff_impact.png"
+        }
+        
+    # Insight 6: Crowd
+    visualize_crowd_impact(df, save_dir=save_dir_str, show=False)
+    if (Path(save_dir) / "insight6_crowding_validation.png").exists():
+        registry["insight6_crowding_validation.png"] = {
+            "title": "Crowding Impact Validation",
+            "type": "crowd",
+            "branch": "Global",
+            "path": "/plots/insight6_crowding_validation.png"
+        }
+        
+    print(f"Registry Generation Complete. {len(registry)} plots registered.")
+    return registry

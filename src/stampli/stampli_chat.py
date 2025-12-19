@@ -7,18 +7,24 @@ import pandas as pd
 import numpy as np
 from typing import List, Dict, AsyncGenerator, Optional, Literal
 from pathlib import Path
-from stampli.paths import get_enriched_path, CURRENT_VERSION
+from stampli.paths import get_enriched_path, CURRENT_VERSION, PROJECT_ROOT
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
+# ... (imports)
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 
 # Import Viz Logic directly
-from stampli.disney_viz import generate_cx_playbook, get_playbook_narrative_from_df
+from stampli.disney_viz import generate_cx_playbook, get_playbook_narrative_from_df, generate_all_plots
+from fastapi.staticfiles import StaticFiles
+
+
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +51,7 @@ class GlobalStore:
     playbook_df: pd.DataFrame = None # Cached Playbook
     embedding_model = None
     valid_branches: List[str] = []
+    plot_registry: Dict = {} # Cache Plot Metadata
     active_path: Path = None
     active_version: str = CURRENT_VERSION
     enrichment_coverage: float = 0.0
@@ -94,8 +101,12 @@ class GlobalStore:
         try:
             self.playbook_df = generate_cx_playbook(self.df)
             logger.info(f"Playbook generated with {len(self.playbook_df)} critical issues.")
+            
+            # Generate Plots
+            self.plot_registry = generate_all_plots(self.df)
+            logger.info(f"Plots Generated. Registry size: {len(self.plot_registry)}")
         except Exception as e:
-            logger.error(f"Failed to generate playbook: {e}")
+            logger.error(f"Failed to generate playbook/plots: {e}")
             
         logger.info(f"Loaded {len(self.df)} rows. Enrichment Coverage: {self.enrichment_coverage:.1f}%")
 
@@ -221,6 +232,11 @@ class StampliRequest(BaseModel):
 
 # --- App Setup ---
 app = FastAPI(title="Stampli Filter Engine")
+# Mount static plots (Absolute Path)
+plots_dir = PROJECT_ROOT / "output" / "disney_exploration"
+# Ensure it exists
+os.makedirs(plots_dir, exist_ok=True)
+app.mount("/plots", StaticFiles(directory=str(plots_dir)), name="plots")
 
 app.add_middleware(
     CORSMiddleware,
@@ -299,6 +315,7 @@ async def chat_stream_generator(messages: List[Dict[str, str]]) -> AsyncGenerato
             capabilities = [
                 "Semantic Search: Filter 42k reviews by crowd level, staff sentiment, price, etc.",
                 "Playbook Reporting: Summarize top critical issues and worsening trends.",
+                "Visual Evidence: Auto-generated heatmaps and charts for deep dives.",
                 "Forecasting: (Coming Soon) Anomaly detection and future predictions."
             ]
             
@@ -325,8 +342,31 @@ Your Capabilities:
         if filters.intent == "view_report":
              yield f"data: {json.dumps({'type': 'log', 'data': {'text': 'Fetching Playbook Narrative...', 'status': 'done'}})}\n\n"
              
+             # Checks for "list" requests
+             if any(k in user_query.lower() for k in ['list', 'what charts', 'what plots', 'available']):
+                 msg = "Here are the charts I have available based on the current data:\n\n"
+                 for fname, meta in store.plot_registry.items():
+                     msg += f"- **{meta['title']}**\n"
+                 
+                 yield f"data: {json.dumps({'type': 'delta', 'data': {'text': msg}})}\n\n"
+                 yield "data: [DONE]\n\n"
+                 return
+
              narrative = get_playbook_narrative_from_df(store.playbook_df)
              
+             # Smart Plot Selection
+             relevant_plots = []
+             # Always include Global Insights (Insight 2, 3, 4, 5, 6) which we marked as Global
+             for fname, meta in store.plot_registry.items():
+                 # Logic: If global, show it. If specific branch requested, show that branch's heatmap.
+                 is_global = meta['branch'] == 'Global'
+                 is_relevant_branch = filters.branch and meta['branch'] == filters.branch
+                 
+                 # Optimization: Only show Global if NO branch specified, OR if it's general enough? 
+                 # Let's show Global + Specific if requested.
+                 if is_global or is_relevant_branch:
+                     relevant_plots.append(meta)
+            
              # Synthesize answer using the narrative
              synth_llm = ChatOpenAI(model="gpt-4o", streaming=True)
              
@@ -339,12 +379,27 @@ Use the following Statistical Narrative generated from the latest data:
 Present this information clearly. 
 If the user asked for specific trends (e.g. "what is getting worse?"), focus on that part.
 If general, provide the full summary.
+
+IMPORTANT: Do NOT generate image links/URLs yourself. The system will attach the relevant charts automatically.
 """
              prompt_msgs = [SystemMessage(content=sys_prompt), HumanMessage(content=user_query)]
              
              async for chunk in synth_llm.astream(prompt_msgs):
                 if chunk.content:
                     yield f"data: {json.dumps({'type': 'delta', 'data': {'text': chunk.content}})}\n\n"
+             
+             # Append Plots
+             if relevant_plots:
+                 header_msg = '\n\n**Visual Evidence:**\n'
+                 yield f"data: {json.dumps({'type': 'delta', 'data': {'text': header_msg}})}\n\n"
+                 
+                 # Sort: Heatmap first, then others
+                 relevant_plots.sort(key=lambda x: 0 if x['type'] == 'sent_heatmap' else 1)
+                 
+                 for p in relevant_plots:
+                     md = f"![{p['title']}]({p['path']})\n*Figure: {p['title']}*\n\n"
+                     yield f"data: {json.dumps({'type': 'delta', 'data': {'text': md}})}\n\n"
+
              yield "data: [DONE]\n\n"
              return
 
@@ -596,6 +651,53 @@ You are a disciplined Disney Analyst. Your output MUST follow the TEMPLATE below
         if chunk.content:
             yield f"data: {json.dumps({'type': 'delta', 'data': {'text': chunk.content}})}\n\n"
             
+    # --- APPEND RELEVANT PLOTS (Search Mode) ---
+    plot_hits = []
+    q_lower = user_query.lower()
+    t_lower = [t.lower() for t in (filters.topics or [])]
+    
+    for fname, meta in store.plot_registry.items():
+        is_hit = False
+        m_type = meta.get('type')
+        m_branch = meta.get('branch')
+        
+        # 1. Branch Specific Heatmaps
+        if m_type == 'sent_heatmap':
+            # If user filtered to this branch, show it
+            if filters.branch and m_branch == filters.branch:
+                is_hit = True
+        
+        # 2. Global/Topic Insights
+        elif m_type == 'crowd':
+            if 'crowd' in q_lower or 'queue' in q_lower or 'wait' in q_lower or any('queue' in t for t in t_lower):
+                is_hit = True
+        elif m_type == 'staff':
+            if 'staff' in q_lower or 'rude' in q_lower or 'friendly' in q_lower or any('staff' in t for t in t_lower):
+                is_hit = True 
+        elif m_type == 'seasonality':
+            if 'season' in q_lower or 'month' in q_lower or 'when' in q_lower or 'time' in q_lower:
+                is_hit = True
+        elif m_type == 'country':
+            if 'country' in q_lower or 'location' in q_lower or 'visitor' in q_lower or filters.reviewer_location:
+                is_hit = True
+        elif m_type == 'drivers':
+            if 'bad' in q_lower or 'worst' in q_lower or 'hate' in q_lower or 'complaint' in q_lower or filters.sentiment_label == 'Negative':
+                is_hit = True
+                
+        if is_hit:
+            plot_hits.append(meta)
+            
+    if plot_hits:
+        header_msg = '\n\n**Visual Evidence:**\n'
+        yield f"data: {json.dumps({'type': 'delta', 'data': {'text': header_msg}})}\n\n"
+        
+        # sort so heatmap is first if present
+        plot_hits.sort(key=lambda x: 0 if x.get('type') == 'sent_heatmap' else 1)
+        
+        for p in plot_hits:
+             md = f"![{p['title']}]({p['path']})\n*Figure: {p['title']}*\n\n"
+             yield f"data: {json.dumps({'type': 'delta', 'data': {'text': md}})}\n\n"
+
     yield "data: [DONE]\n\n"
 
 
