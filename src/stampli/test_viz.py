@@ -18,8 +18,11 @@ from stampli.disney_viz import (
     visualize_staff_impact,
     visualize_crowd_impact,
     get_evidence_quotes,
+    visualize_crowd_impact,
+    get_evidence_quotes,
     generate_cx_playbook
 )
+from stampli.reporting import generate_excel_playbook, generate_pdf_report
 
 
 
@@ -30,9 +33,14 @@ def main():
     path = get_enriched_path()
     df = pd.read_parquet(path)
     
-    root_dir = SCRIPT_DIR.parents[2] # src/stampli -> src -> tmp/stampli
-    save_dir = root_dir / "data" / "plots"
+    root_dir = SCRIPT_DIR.parents[2]
+    # Setup Paths - dev test output
+    root_dir = Path(".").resolve()
+    # Use output/test_viz so it's ignored
+    save_dir = root_dir / "output" / "test_viz" 
+    save_dir.mkdir(parents=True, exist_ok=True)
     
+    print(f"Running Viz Test for All Insights...")
     print(f"Saving plots to {save_dir}")
     
     # 1. Theme Heatmaps
@@ -62,8 +70,16 @@ def main():
         playbook = generate_cx_playbook(df, save_dir=str(save_dir))
         print(f"CX Playbook Generated. Rows: {len(playbook)}")
         print(playbook.head())
+        print(f"CX Playbook Generated. Rows: {len(playbook)}")
+        print(playbook.head())
+        
+        # 9. Reports
+        print("\nTesting Report Generation...")
+        generate_excel_playbook(playbook, str(root_dir / "output" / "test_playbook.xlsx"))
+        generate_pdf_report(str(save_dir), str(root_dir / "output" / "test_report.pdf"))
+        
     except Exception as e:
-        print(f"CX Playbook Failed: {e}")
+        print(f"CX Playbook/Report Failed: {e}")
 
 
 if __name__ == "__main__":
