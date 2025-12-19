@@ -82,12 +82,11 @@ def save_plot(filename, save_dir):
         os.makedirs(save_dir, exist_ok=True)
         full_path = os.path.join(save_dir, filename)
         plt.savefig(full_path, bbox_inches='tight')
-        print(f"Saved: {full_path}")
+        # print(f"Saved: {full_path}") # Suppress logging
 
 # --- Insight 1: Theme Heatmaps ---
 def visualize_theme_sentiment(df, save_dir=None, show=True):
-    plt.suptitle("Theme Sentiment", fontsize=18, fontweight='bold', y=1.05)
-    # removed logging
+    # removed global suptitle causing ghost figure
     
     work_df = df.copy()
     # Check if 'Season' exists
@@ -127,6 +126,7 @@ def visualize_theme_sentiment(df, save_dir=None, show=True):
         piv_vol = piv_vol[SEASONS_ORDER]
         
         fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+        fig.suptitle(f"Theme Sentiment: {branch.replace('_', ' ')}", fontsize=18, fontweight='bold', y=1.05)
         
         sns.heatmap(piv_sent, annot=True, fmt=".1f", cmap="RdYlGn", vmin=1, vmax=5, ax=axes[0])
         style_title(axes[0], branch, "Median Sentiment (1-5)")
@@ -175,11 +175,10 @@ def visualize_theme_sentiment(df, save_dir=None, show=True):
         save_plot(f"insight1_{branch}.png", save_dir)
         if show:
             plt.show()
+        plt.close(fig)
 
 # --- Insight 2: What Drives Low Ratings? ---
 def visualize_low_rating_drivers(df, save_dir=None, show=True):
-    plt.suptitle("Insight 2: What Drives Low Ratings?", fontsize=18, fontweight='bold', y=1.05)
-    # removed logging
     
     # Filter Low vs High
     low_ratings = df[df['Rating'] <= 2].copy()
@@ -195,7 +194,8 @@ def visualize_low_rating_drivers(df, save_dir=None, show=True):
     topic_counts = exploded['themes'].value_counts().head(10)
     
     # Viz
-    plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(10, 6))
+    fig.suptitle("Insight 2: What Drives Low Ratings?", fontsize=18, fontweight='bold', y=1.05)
     ax = sns.barplot(x=topic_counts.values, y=topic_counts.index, palette="Reds_r", hue=topic_counts.values, legend=False)
     style_title(ax, "All Parks", "Top Drivers of Low Ratings (1-2 Stars)")
     style_axis_labels(ax, "Number of Negative Reviews", "Theme")
@@ -203,11 +203,10 @@ def visualize_low_rating_drivers(df, save_dir=None, show=True):
     save_plot("insight2_low_ratings.png", save_dir)
     if show:
         plt.show()
+    plt.close(fig)
 
 # --- Insight 3: Seasonality Beyond Ratings ---
 def visualize_seasonality(df, save_dir=None, show=True):
-    plt.suptitle("Insight 3: Seasonality Beyond Ratings", fontsize=18, fontweight='bold', y=1.05)
-    # removed logging
     
     # Group by Year-Month
     # Need to sort chronologically. Year_Month is string "YYYY-M".
@@ -233,6 +232,7 @@ def visualize_seasonality(df, save_dir=None, show=True):
         return
 
     fig, ax1 = plt.subplots(figsize=(12, 6))
+    fig.suptitle("Insight 3: Seasonality Beyond Ratings", fontsize=18, fontweight='bold', y=1.05)
     
     sns.lineplot(data=monthly, x='dt', y='sentiment', ax=ax1, color='green', label='Avg Sentiment')
     ax1.set_ylabel('Sentiment Score (1-5)', color='green')
@@ -249,11 +249,10 @@ def visualize_seasonality(df, save_dir=None, show=True):
     save_plot("insight3_seasonality.png", save_dir)
     if show:
         plt.show()
+    plt.close(fig)
 
 # --- Insight 4: Country-Specific Expectations ---
 def visualize_country_sentiment(df, save_dir=None, show=True):
-    plt.suptitle("Insight 4: Country-Specific Expectations", fontsize=18, fontweight='bold', y=1.05)
-    # removed logging
     
     # Top 10 Locations
     top_locs = df['Reviewer_Location'].value_counts().head(10).index
@@ -266,20 +265,20 @@ def visualize_country_sentiment(df, save_dir=None, show=True):
     
     agg = subset.groupby('Reviewer_Location')['sentiment_score'].mean().sort_values()
     
-    plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(10, 6))
+    fig.suptitle("Insight 4: Country-Specific Expectations", fontsize=18, fontweight='bold', y=1.05)
     ax = sns.barplot(x=agg.values, y=agg.index, palette="viridis", hue=agg.values, legend=False)
-    ax = sns.barplot(x=agg.values, y=agg.index, palette="viridis", hue=agg.values, legend=False)
+    ax = sns.barplot(x=agg.values, y=agg.index, palette="viridis", hue=agg.values, legend=False) # redundancy in prev edit? fixed now.
     style_title(ax, "Global", "Average Sentiment by Visitor Country")
     style_axis_labels(ax, "Avg Sentiment Score", "Country")
     
     save_plot("insight4_country_expectations.png", save_dir)
     if show:
         plt.show()
+    plt.close(fig)
 
 # --- Insight 5: Staff Sentiment Deep Dive ---
 def visualize_staff_impact(df, save_dir=None, show=True):
-    plt.suptitle("Insight 5: Staff Sentiment Deep Dive", fontsize=18, fontweight='bold', y=1.05)
-    # removed logging
     
     # Boxplot of Sentiment Score by Staff Tag
     # Filter rows where staff_sentiment is present
@@ -289,7 +288,8 @@ def visualize_staff_impact(df, save_dir=None, show=True):
         print("No staff sentiment data found.")
         return
         
-    plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(10, 6))
+    fig.suptitle("Insight 5: Staff Sentiment Deep Dive", fontsize=18, fontweight='bold', y=1.05)
     ax = sns.boxplot(x='staff_sentiment', y='sentiment_score', data=subset, palette="Set2", hue='staff_sentiment', legend=False)
     ax = sns.boxplot(x='staff_sentiment', y='sentiment_score', data=subset, palette="Set2", hue='staff_sentiment', legend=False)
     style_title(ax, "All Parks", "Impact of Staff Interactions on Overall Rating")
@@ -298,11 +298,10 @@ def visualize_staff_impact(df, save_dir=None, show=True):
     save_plot("insight5_staff_impact.png", save_dir)
     if show:
         plt.show()
+    plt.close(fig)
 
 # --- Insight 6: Crowding Signal Validation ---
 def visualize_crowd_impact(df, save_dir=None, show=True):
-    plt.suptitle("Insight 6: Crowding Signal Validation", fontsize=18, fontweight='bold', y=1.05)
-    # removed logging
     
     # Group by Crowd Level
     # Order: Empty, Moderate, Crowded, Packed
@@ -320,6 +319,7 @@ def visualize_crowd_impact(df, save_dir=None, show=True):
     ).reindex(ORDER)
     
     fig, ax1 = plt.subplots(figsize=(10, 6))
+    fig.suptitle("Insight 6: Crowding Signal Validation", fontsize=18, fontweight='bold', y=1.05)
     
     ax1.bar(agg.index, agg['avg_sentiment'], color='skyblue', label='Sentiment')
     ax1.set_ylabel('Avg Sentiment', color='blue')
@@ -335,6 +335,7 @@ def visualize_crowd_impact(df, save_dir=None, show=True):
     save_plot("insight6_crowding_validation.png", save_dir)
     if show:
         plt.show()
+    plt.close(fig)
 
 # --- Insight 7: Evidence Quotes ---
 def get_evidence_quotes(df, filters, n=3):
